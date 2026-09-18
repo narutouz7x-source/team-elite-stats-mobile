@@ -4,8 +4,11 @@ import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
 import { initializeNativeNotifications } from './nativeNotifications';
+import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
+
+type AppUpdate = { version: string; url: string; notes?: string };
 
 const mediaUrl = (value?: string) => {
   if (!value) return '';
@@ -49,6 +52,7 @@ export function App() {
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
 
   const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
 
@@ -81,6 +85,47 @@ export function App() {
       if (diagnostic?.error) console.warn('[FCM diagnostic] app status:', diagnostic);
     });
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkForUpdate = async () => {
+      try {
+        const response = await fetch('https://api.github.com/repos/narutouz7x-source/team-elite-stats-mobile/releases/latest', {
+          headers: { Accept: 'application/vnd.github+json' },
+          cache: 'no-store'
+        });
+        if (!response.ok) return;
+        const release = await response.json();
+        const latest = String(release.tag_name || '').replace(/^v/i, '');
+        const current = String(packageJson.version || '0.0.0');
+        const compareVersions = (a: string, b: string) => {
+          const pa = a.split('.').map(Number);
+          const pb = b.split('.').map(Number);
+          for (let i = 0; i < 3; i++) {
+            const av = Number.isFinite(pa[i]) ? pa[i] : 0;
+            const bv = Number.isFinite(pb[i]) ? pb[i] : 0;
+            if (av !== bv) return av - bv;
+          }
+          return 0;
+        };
+        if (!cancelled && latest && compareVersions(latest, current) > 0) {
+          const apk = Array.isArray(release.assets)
+            ? release.assets.find((asset: { name?: string }) => String(asset.name || '').toLowerCase().endsWith('.apk'))
+            : null;
+          setAppUpdate({
+            version: latest,
+            url: apk?.browser_download_url || release.html_url,
+            notes: String(release.body || '').trim()
+          });
+        }
+      } catch {
+        // Update checks are optional and must never block the app.
+      }
+    };
+    void checkForUpdate();
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
@@ -151,6 +196,19 @@ export function App() {
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
     <nav className="bottom-nav"><NavButton active={tab==='home'} label="Home" icon={<Home size={20}/>} onClick={()=>setTab('home')}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={20}/>} onClick={()=>setTab('matches')}/><NavButton active={tab==='team'} label="Team" icon={<Users size={20}/>} onClick={()=>setTab('team')}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={20}/>} onClick={()=>setTab('clips')}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={20}/>} onClick={()=>setTab('crew')}/><button className="refresh" onClick={()=>void load()} aria-label="Refresh"><RefreshCw size={18}/></button></nav>
+    {appUpdate && <div className="app-update-backdrop">
+      <section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title">
+        <div className="app-update-icon"><RefreshCw size={20}/></div>
+        <span>OG ELITE STATS • UPDATE</span>
+        <h2 id="app-update-title">New update available</h2>
+        <p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>
+        {appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}
+        <div className="app-update-actions">
+          <button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button>
+          <button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button>
+        </div>
+      </section>
+    </div>}
     <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
   </div>;
