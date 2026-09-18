@@ -3,6 +3,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -136,3 +139,16 @@ jobs:
           name: og-elite-stats-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
+
+      - name: Publish APK release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="v$(node -p "require('./package.json').version")"
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" "$APK" --clobber
+          else
+            gh release create "$VERSION" "$APK" --title "OG ELITE STATS $VERSION" --generate-notes
+          fi
