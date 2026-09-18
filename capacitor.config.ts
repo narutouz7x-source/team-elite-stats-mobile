@@ -1,3 +1,4 @@
+/// <reference types="@capacitor-firebase/messaging" />
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -8,6 +9,9 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'DARK',
       overlaysWebView: false
+    },
+    FirebaseMessaging: {
+      presentationOptions: ['alert', 'badge', 'sound']
     }
   }
 };
