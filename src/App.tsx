@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, ChevronRight, Flame, Home, RefreshCw, Shield, Swords, Trophy, Users } from 'lucide-react';
+import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
-import type { Match, Notification, Player, Settings, Stage, Tournament } from './types';
+import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 
 type Tab = 'home' | 'matches' | 'team' | 'alerts';
 
@@ -24,6 +24,11 @@ export function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [playerStats, setPlayerStats] = useState<Record<string, PlayerStat>>({});
+  const [clips, setClips] = useState<Clip[]>([]);
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [copied, setCopied] = useState(false);
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,14 +39,17 @@ export function App() {
     setLoading(true);
     setError('');
     try {
-      const [s, t, p, m, n] = await Promise.all([
-        api.settings(), api.tournaments(), api.players(), api.matches(), api.notifications()
+      const [s, t, p, m, n, pstats, clipsData, creatorsData] = await Promise.all([
+        api.settings(), api.tournaments(), api.players(), api.matches(), api.notifications(), api.playerStats(), api.clips(), api.creators()
       ]);
       setSettings(s);
       setTournaments(t);
       setPlayers(p);
       setMatches(m);
       setNotifications(n);
+      setPlayerStats(pstats);
+      setClips(clipsData);
+      setCreators(creatorsData);
       if (t[0]) setStages(await api.stages(t[0].id));
     } catch (e) {
       setError('Connect the app to your production API using VITE_API_URL.');
@@ -118,7 +126,9 @@ export function App() {
             </section>
 
             <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage} />
-            <MatchList matches={visibleMatches.slice(0, 4)} />
+            <MatchList matches={visibleMatches.slice(0, 4)} onView={setSelectedMatch} />
+            <ClipSection clips={clips.slice(0, 4)} />
+            <CrewSection creators={creators.slice(0, 6)} />
           </>
         )}
 
@@ -126,7 +136,7 @@ export function App() {
           <>
             <PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger." />
             <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage} />
-            <MatchList matches={visibleMatches} />
+            <MatchList matches={visibleMatches} onView={setSelectedMatch} />
           </>
         )}
 
@@ -135,9 +145,9 @@ export function App() {
             <PageHeading title="The Squad" subtitle="Current active roster from the live database." />
             <div className="player-grid">
               {players.map(player => (
-                <article className="player-card" key={player.id}>
+                <article className="player-card player-card-large" key={player.id}>
                   {player.imageUrl ? <img src={player.imageUrl} alt="" /> : <div className="player-avatar">{player.name.slice(0, 1)}</div>}
-                  <div><strong>{player.name}</strong><span>{player.role}</span></div>
+                  <div><strong>{player.name}</strong><span>{player.role}</span><div className="player-metrics"><b>{playerStats[player.id]?.kills ?? 0}</b><small>KILLS</small><b>{playerStats[player.id]?.played ?? 0}</b><small>MATCHES</small><b>{playerStats[player.id]?.points ?? 0}</b><small>PTS</small></div></div>
                 </article>
               ))}
             </div>
@@ -172,6 +182,7 @@ export function App() {
       </nav>
 
       <footer>Powered by Lumina HQ</footer>
+      {selectedMatch && <MatchDetails match={selectedMatch} onClose={() => { setSelectedMatch(null); setCopied(false); }} copied={copied} onCopy={async () => { await navigator.clipboard?.writeText(matchCopyText(selectedMatch)); setCopied(true); setTimeout(() => setCopied(false), 1600); }} />}
     </div>
   );
 }
@@ -192,7 +203,7 @@ function StagePicker({ stages, selected, onSelect }: { stages: Stage[]; selected
   </div>;
 }
 
-function MatchList({ matches }: { matches: Match[] }) {
+function MatchList({ matches, onView }: { matches: Match[]; onView: (match: Match) => void }) {
   return <section className="section">
     <div className="section-title"><span>Recent results</span><Swords size={18} /></div>
     <div className="match-list">
@@ -201,9 +212,39 @@ function MatchList({ matches }: { matches: Match[] }) {
         <div className="match-number">M{match.matchNumber}</div>
         <div className="match-info"><strong>{match.mapName || 'Battle Royale'}</strong><span>{match.category === 'scrim' ? 'SCRIM' : 'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div>
         <div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div>
+        <button className="match-view" onClick={() => onView(match)}><ExternalLink size={12}/> View</button>
       </article>)}
     </div>
-  </section>;
+  </section>
+}
+
+function matchCopyText(match: Match) {
+  const lines = (match.playerStats || []).map(p => 'Player ' + p.playerId + ': ' + p.kills + ' kills').join('\n');
+  return 'OG ELITE — Match M' + match.matchNumber + '\nMap: ' + (match.mapName || 'Battle Royale') + '\nCategory: ' + (match.category === 'scrim' ? 'SCRIM' : 'OFFICIAL') + '\nPosition: #' + match.position + '\nPoints: ' + match.totalPoints + '\nTime: ' + new Date(match.timestamp).toLocaleString() + '\n' + (lines || 'No player stats recorded.');
+}
+
+function MatchDetails({ match, onClose, copied, onCopy }: { match: Match; onClose: () => void; copied: boolean; onCopy: () => void }) {
+  return <div className="modal-backdrop" onClick={onClose}><section className="match-modal" onClick={e => e.stopPropagation()}>
+    <button className="modal-close" onClick={onClose}><X size={18}/></button>
+    <span className="modal-kicker">OG ELITE • MATCH M{match.matchNumber}</span>
+    <h2>{match.mapName || 'Battle Royale'}</h2>
+    <div className="detail-grid">
+      <div><b>#{match.position}</b><small>POSITION</small></div><div><b>{match.totalPoints}</b><small>POINTS</small></div>
+      <div><b>{(match.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0)}</b><small>KILLS</small></div><div><b>{match.category === 'scrim' ? 'SCRIM' : 'OFFICIAL'}</b><small>TYPE</small></div>
+    </div>
+    <div className="modal-player-list">{(match.playerStats || []).map(p => <div key={p.playerId}><span>{p.playerId}</span><b>{p.kills} kills</b></div>)}</div>
+    <button className="copy-match" onClick={onCopy}><Copy size={15}/> {copied ? 'Copied!' : 'Copy match data'}</button>
+  </section></div>;
+}
+
+function ClipSection({ clips }: { clips: Clip[] }) {
+  if (!clips.length) return null;
+  return <section className="section"><div className="section-title"><span>Clips</span><Play size={18}/></div><div className="clip-grid">{clips.map(clip => <a className="clip-card" key={clip.id} href={clip.url} target="_blank" rel="noreferrer"><div className="clip-icon"><Play size={17}/></div><div><strong>{clip.title}</strong><span>{clip.platform}{clip.creatorName ? ' • ' + clip.creatorName : ''}</span></div><ExternalLink size={14}/></a>)}</div></section>;
+}
+
+function CrewSection({ creators }: { creators: Creator[] }) {
+  if (!creators.length) return null;
+  return <section className="section"><div className="section-title"><span>Crew</span><Users size={18}/></div><div className="crew-grid">{creators.map(creator => <article className="crew-card" key={creator.id}>{creator.imageUrl ? <img src={creator.imageUrl} alt="" /> : <div className="crew-avatar">{creator.name.slice(0,1)}</div>}<div><strong>{creator.name}</strong><span>{creator.handle || 'OG ELITE CREW'}</span>{creator.bio && <p>{creator.bio}</p>}</div></article>)}</div></section>;
 }
 
 function EmptyState({ text }: { text: string }) {
