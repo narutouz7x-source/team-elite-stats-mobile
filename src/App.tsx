@@ -75,7 +75,7 @@ export function App() {
             {settings?.logoUrl ? <img src={settings.logoUrl} alt="" /> : <Shield size={22} />}
           </div>
           <div>
-            <strong>{settings?.teamName || 'Team Elite'}</strong>
+            <strong>{settings?.teamName || 'OG ELITE'}</strong>
             <span>{settings?.game || 'Free Fire MAX'}</span>
           </div>
         </div>
@@ -91,7 +91,7 @@ export function App() {
             <section className="hero-card">
               <div className="eyebrow"><Flame size={14} /> LIVE PERFORMANCE CENTER</div>
               <h1>{settings?.tagline || 'Discipline Builds Champions.'}</h1>
-              <p>Track official results, stages, players and the latest Team Elite updates.</p>
+              <p>Track official results, stages, players and the latest OG ELITE updates.</p>
               <button className="primary-button" onClick={() => setTab('matches')}>
                 View match history <ChevronRight size={17} />
               </button>
@@ -124,7 +124,7 @@ export function App() {
 
         {tab === 'matches' && (
           <>
-            <PageHeading title="Match History" subtitle="Every recorded result, synced from the Team Elite ledger." />
+            <PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger." />
             <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage} />
             <MatchList matches={visibleMatches} />
           </>
@@ -181,7 +181,7 @@ function NavButton({ active, label, icon, onClick }: { active: boolean; label: s
 }
 
 function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return <section className="page-heading"><span>TEAM ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>;
+  return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>;
 }
 
 function StagePicker({ stages, selected, onSelect }: { stages: Stage[]; selected: string; onSelect: (value: string) => void }) {
