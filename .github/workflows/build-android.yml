@@ -64,16 +64,75 @@ jobs:
               app.write_text(app_text)
           PY
 
+      # Restore the permanent release signing key from GitHub Actions secrets.
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS"; exit 1; }
+          test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD"; exit 1; }
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release-key.jks
+          test -s android/release-key.jks
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('android/app/build.gradle')
+          text = app.read_text()
+
+          if 'signingConfigs {' not in text:
+              marker = 'android {'
+              if marker not in text:
+                  raise SystemExit('android/app/build.gradle has no android block')
+              signing = '''android {
+              signingConfigs {
+                  release {
+                      storeFile file("../release-key.jks")
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+          '''
+              text = text.replace(marker + '\n', signing, 1)
+          else:
+              raise SystemExit('Unexpected existing signingConfigs block; refusing to overwrite it')
+
+          text = text.replace(
+              'buildTypes {',
+              '''buildTypes {
+              release {
+                  signingConfig signingConfigs.release
+              }''',
+              1
+          )
+
+          app.write_text(text)
+          PY
+
       - run: cp assets/og-elite-icon.png assets/icon.png
       - run: npm install -D @capacitor/assets
       - run: npx capacitor-assets generate --android
       - run: npx cap sync android
 
-      - run: ./gradlew assembleDebug --no-daemon
+      - name: Build signed release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
         working-directory: android
 
       - uses: actions/upload-artifact@v4
         with:
-          name: og-elite-stats-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 14
+          name: og-elite-stats-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
