@@ -44,10 +44,11 @@ export function App() {
   const [clipMessage, setClipMessage] = useState('');
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
   const [selectedStage, setSelectedStage] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === 'official') ?? tournaments[0];
+  const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
 
   async function load() {
     setLoading(true); setError('');
@@ -62,17 +63,19 @@ export function App() {
   }
 
   useEffect(() => { void load(); }, []);
-  useEffect(() => { if (!activeTournament) return; api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+  useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+  const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
-  const visibleMatches = useMemo(() => (selectedStage === 'all' ? matches : matches.filter(m => m.weekId === selectedStage)).slice().sort((a,b) => b.timestamp-a.timestamp), [matches, selectedStage]);
-  const totalKills = matches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
+  const visibleMatches = useMemo(() => (selectedStage === 'all' ? categoryMatches : categoryMatches.filter(m => m.weekId === selectedStage)).slice().sort((a,b) => b.timestamp-a.timestamp), [categoryMatches, selectedStage]);
+  const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
 
   return <div className="app-shell">
     <header className="topbar"><div className="brand"><div className="brand-mark">{settings?.logoUrl ? <img src={settings.logoUrl} alt="" /> : <Shield size={22}/>}</div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
         <section className="stats-overview">
-          <div className="section-title"><span>Team stats</span><Trophy size={18}/></div>
+          <div className="stats-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div>
+          <div className="section-title"><span>{selectedCategory === 'scrim' ? 'Scrim stats' : 'Official stats'}</span><Trophy size={18}/></div>
           <div className="stats-grid"><div><Users size={18}/><strong>{players.length}</strong><span>Players</span></div><div><Swords size={18}/><strong>{matches.length}</strong><span>Matches</span></div><div><Flame size={18}/><strong>{totalKills}</strong><span>Total kills</span></div></div>
         </section>
         <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
