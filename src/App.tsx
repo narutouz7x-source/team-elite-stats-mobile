@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
+import ogEliteLogo from '../assets/og-elite-icon.png';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
 
@@ -70,7 +71,7 @@ export function App() {
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
 
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><div className="brand-mark">{settings?.logoUrl ? <img src={settings.logoUrl} alt="" /> : <Shield size={22}/>}</div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
+    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
         <section className="stats-overview">
