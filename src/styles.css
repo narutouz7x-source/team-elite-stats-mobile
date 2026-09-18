@@ -107,3 +107,13 @@ button:focus-visible{outline-color:#ff6a00}
 .stats-mode-switch{display:flex;gap:8px;margin:0 0 14px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0b0d0c}
 .stats-mode-switch button{flex:1;border:0;border-radius:10px;padding:11px 12px;background:transparent;color:#8f9791;font:800 11px Inter,sans-serif;letter-spacing:.12em;cursor:pointer}
 .stats-mode-switch button.active{background:#ff6a00;color:#fff;box-shadow:0 0 18px rgba(255,106,0,.2)}
+
+
+/* Crew social links — platform logo + handle below the image */
+.mobile-creator-links{align-items:center}
+.mobile-creator-links a{display:inline-flex;align-items:center;gap:7px}
+.creator-platform-logo{width:20px;height:20px;display:grid;place-items:center;border-radius:6px;background:#171a18;color:#fff;font:800 9px Inter;flex:0 0 20px}
+.creator-platform-youtube{color:#ff5b52}
+.creator-platform-instagram{color:#ff8bd6}
+.creator-platform-discord{color:#9da8ff}
+.mobile-creator-links a span:last-child{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dce3dd}
