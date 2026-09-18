@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.teamelite.stats',
   appName: 'Team Elite Stats',
   webDir: 'dist',
-  bundledWebRuntime: false,
   plugins: {
     StatusBar: {
       style: 'DARK',
