@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1036020872150",
+    "project_id": "og-elite-stats",
+    "storage_bucket": "og-elite-stats.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1036020872150:android:8b3f5f584d758d84d2aa77",
+        "android_client_info": {
+          "package_name": "com.teamelite.stats"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGNfeO_tqOo9ricxgUItkA2Z3-SKGXxRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
