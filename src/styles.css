@@ -178,3 +178,17 @@ button:focus-visible{outline-color:#ff6a00}
 .creator-platform-instagram{color:#ff8bd6}
 .creator-platform-discord{color:#9da8ff}
 .mobile-creator-links a span:last-child{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dce3dd}
+
+
+/* In-app update prompt */
+.app-update-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.76);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:18px}
+.app-update-card{width:min(430px,100%);padding:24px;border:1px solid rgba(255,106,0,.3);border-radius:18px;background:linear-gradient(145deg,#171717,#080808);box-shadow:0 25px 90px rgba(0,0,0,.65);text-align:left}
+.app-update-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:rgba(255,106,0,.12);color:#ff6a00;margin-bottom:18px}
+.app-update-card>span{font:800 6px Orbitron;letter-spacing:.18em;color:#ff9b5c}
+.app-update-card h2{font:800 21px Orbitron;margin:9px 0 8px;color:#f4f5f4}
+.app-update-card>p{margin:0;color:#737d76;font:500 9px Inter;line-height:1.7}
+.app-update-notes{margin-top:13px;padding:10px;border-radius:8px;background:#0d0d0d;border:1px solid rgba(255,255,255,.06);color:#66716a;font:500 7px Inter;line-height:1.6;white-space:pre-wrap}
+.app-update-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:18px}
+.app-update-actions button{padding:11px;border-radius:9px;font:900 7px Orbitron;letter-spacing:.1em}
+.app-update-later{background:#151515;color:#737d76;border:1px solid rgba(255,255,255,.07)}
+.app-update-now{background:linear-gradient(135deg,#ff6a00,#ff9b5c);color:#080808}
