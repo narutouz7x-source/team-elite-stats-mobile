@@ -103,3 +103,7 @@ button:focus-visible{outline-color:#ff6a00}
 .mobile-creator-name{position:absolute;z-index:4;left:14px;right:14px;top:14px;bottom:auto}
 .mobile-creator-name h2{margin:0;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.65)}
 .mobile-creator-handle{position:absolute;z-index:4;left:14px;bottom:14px;color:#fff;font:600 8px Inter;letter-spacing:.08em;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+
+.stats-mode-switch{display:flex;gap:8px;margin:0 0 14px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0b0d0c}
+.stats-mode-switch button{flex:1;border:0;border-radius:10px;padding:11px 12px;background:transparent;color:#8f9791;font:800 11px Inter,sans-serif;letter-spacing:.12em;cursor:pointer}
+.stats-mode-switch button.active{background:#ff6a00;color:#fff;box-shadow:0 0 18px rgba(255,106,0,.2)}
