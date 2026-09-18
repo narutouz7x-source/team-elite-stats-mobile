@@ -5,6 +5,16 @@ import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, 
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
 
+const mediaUrl = (value?: string) => {
+  if (!value) return '';
+  const raw = value.trim();
+  if (!raw) return '';
+  if (raw.startsWith('//')) return 'https:' + raw;
+  if (raw.startsWith('/')) return ((import.meta.env.VITE_API_URL || '').replace(/\/$/, '')) + raw;
+  if (raw.startsWith('http://')) return 'https://' + raw.slice(7);
+  return raw;
+};
+
 const relativeTime = (timestamp?: number) => {
   if (!timestamp) return '—';
   const diff = Math.max(0, Date.now() - timestamp);
@@ -231,7 +241,7 @@ export function App() {
             <section className="mobile-content-hero"><div><span>OG ELITE / COMMUNITY</span><h1>OUR CREW</h1><p>Meet the creators and personalities building the OG ELITE community.</p></div></section>
             <section className="mobile-creator-grid">
               {creators.length ? creators.map(creator => <article className="mobile-creator-card" key={creator.id}>
-                <div className="mobile-creator-image">{creator.imageUrl ? <img src={creator.imageUrl} alt={creator.name} /> : <div>{creator.name.slice(0,2).toUpperCase()}</div>}
+                <div className="mobile-creator-image">{creator.imageUrl ? <img src={mediaUrl(creator.imageUrl)} alt={creator.name} loading="eager" decoding="async" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = 'none'; }} /> : <div>{creator.name.slice(0,2).toUpperCase()}</div>}
                   {creator.featured && <small>FEATURED</small>}<div className="mobile-creator-name"><h2>{creator.name}</h2></div>{creator.handle && <span className="mobile-creator-handle">{creator.handle}</span>}
                 </div>
                 <div className="mobile-creator-body"><p>{creator.bio || 'OG ELITE community creator.'}</p><div className="mobile-creator-links">
