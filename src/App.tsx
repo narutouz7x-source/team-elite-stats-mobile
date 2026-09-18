@@ -142,15 +142,44 @@ export function App() {
 
         {tab === 'team' && (
           <>
-            <PageHeading title="The Squad" subtitle="Current active roster from the live database." />
-            <div className="player-grid">
-              {players.map(player => (
-                <article className="player-card player-card-large" key={player.id}>
-                  {player.imageUrl ? <img src={player.imageUrl} alt="" /> : <div className="player-avatar">{player.name.slice(0, 1)}</div>}
-                  <div><strong>{player.name}</strong><span>{player.role}</span><div className="player-metrics"><b>{playerStats[player.id]?.kills ?? 0}</b><small>KILLS</small><b>{playerStats[player.id]?.played ?? 0}</b><small>MATCHES</small><b>{playerStats[player.id]?.points ?? 0}</b><small>PTS</small></div></div>
-                </article>
-              ))}
+            <section className="mobile-players-intro">
+              <div>
+                <span className="mobile-section-kicker">OG ELITE / FREE FIRE MAX</span>
+                <h1>Meet the <em>squad.</em></h1>
+                <p>Player profiles, roles and live competitive output managed from the OG ELITE control center.</p>
+              </div>
+              <div className="mobile-roster-count">
+                <strong>{String(players.length).padStart(2, '0')}</strong>
+                <span>ACTIVE<br />PLAYERS</span>
+              </div>
+            </section>
+            <div className="mobile-player-grid">
+              {players.map((player, index) => {
+                const stat = playerStats[player.id];
+                const kills = stat?.kills ?? 0;
+                const played = stat?.played ?? 0;
+                const avg = played ? (kills / played).toFixed(2) : '0.00';
+                return (
+                  <article className="mobile-public-player" key={player.id}>
+                    <div className="mobile-public-player-image" style={player.imageUrl ? { backgroundImage: 'url(' + player.imageUrl + ')' } : undefined}>
+                      <div className="mobile-public-player-identity">
+                        <strong>{player.name}</strong>
+                        <small>{player.role}</small>
+                      </div>
+                      {!player.imageUrl && <span>{player.name.slice(0, 2)}</span>}
+                      <b>#{String(index + 1).padStart(2, '0')}</b>
+                      <i>ACTIVE</i>
+                    </div>
+                    <div className="mobile-public-player-stats">
+                      <div><strong>{kills}</strong><span>KILLS</span></div>
+                      <div><strong>{played}</strong><span>MATCHES</span></div>
+                      <div><strong>{avg}</strong><span>AVG</span></div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
+            {players.length === 0 && <div className="empty">No player records available yet.</div>}
           </>
         )}
 
