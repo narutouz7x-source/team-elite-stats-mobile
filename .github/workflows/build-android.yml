@@ -18,7 +18,7 @@ jobs:
       - run: npm install
       - run: npm run build
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: https://team-elite-stats.vercel.app
       - run: npx cap add android
       - run: npx cap sync android
       - run: ./gradlew assembleDebug --no-daemon
