@@ -273,7 +273,7 @@ export function App() {
       </nav>
 
       <footer>Powered by Lumina HQ</footer>
-      {selectedMatch && <MatchDetails match={selectedMatch} onClose={() => { setSelectedMatch(null); setCopied(false); }} copied={copied} onCopy={async () => { await navigator.clipboard?.writeText(matchCopyText(selectedMatch)); setCopied(true); setTimeout(() => setCopied(false), 1600); }} />}
+      {selectedMatch && <MatchDetails match={selectedMatch} players={players} onClose={() => { setSelectedMatch(null); setCopied(false); }} copied={copied} onCopy={async () => { await navigator.clipboard?.writeText(matchCopyText(selectedMatch, players, tournaments, matches, selectedStage)); setCopied(true); setTimeout(() => setCopied(false), 1600); }} />}
     </div>
   );
 }
@@ -309,12 +309,39 @@ function MatchList({ matches, onView }: { matches: Match[]; onView: (match: Matc
   </section>
 }
 
-function matchCopyText(match: Match) {
-  const lines = (match.playerStats || []).map(p => 'Player ' + p.playerId + ': ' + p.kills + ' kills').join('\n');
-  return 'OG ELITE — Match M' + match.matchNumber + '\nMap: ' + (match.mapName || 'Battle Royale') + '\nCategory: ' + (match.category === 'scrim' ? 'SCRIM' : 'OFFICIAL') + '\nPosition: #' + match.position + '\nPoints: ' + match.totalPoints + '\nTime: ' + new Date(match.timestamp).toLocaleString() + '\n' + (lines || 'No player stats recorded.');
+function placementPoints(position: number) {
+  const rankPoints: Record<number, number> = { 1: 12, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 4, 8: 3, 9: 2, 10: 1 };
+  return rankPoints[position] || 0;
 }
 
-function MatchDetails({ match, onClose, copied, onCopy }: { match: Match; onClose: () => void; copied: boolean; onCopy: () => void }) {
+function matchCopyText(match: Match, players: Player[], tournaments: Tournament[], allMatches: Match[], selectedStage: string) {
+  const tournament = tournaments.find(t => t.id === match.tournamentId);
+  const category = match.category || tournament?.category || 'official';
+  const stageMatches = allMatches
+    .filter(m => (m.category || 'official') === category)
+    .filter(m => m.tournamentId === match.tournamentId)
+    .filter(m => selectedStage === 'all' || m.weekId === selectedStage);
+  const overallPoints = stageMatches.reduce((sum, m) => sum + (Number(m.totalPoints) || 0), 0);
+  const playerLines = (match.playerStats || []).map(s => {
+    const player = players.find(p => p.id === s.playerId);
+    return (player?.name || 'Unknown player') + ': ' + s.kills;
+  }).join('\n');
+
+  return [
+    tournament?.name || (category === 'scrim' ? '9 pm scrims' : 'OG ELITE'),
+    '',
+    'Match ' + match.matchNumber,
+    (match.mapName || 'Free Fire MAX').toUpperCase(),
+    '',
+    playerLines || 'No player stats recorded.',
+    '',
+    'Rank: #' + match.position + ' (' + placementPoints(match.position) + ' PTS)',
+    'Total: ' + match.totalPoints + ' PTS',
+    'Overall: ' + overallPoints + ' PTS'
+  ].join('\n');
+}
+
+function MatchDetails({ match, players, onClose, copied, onCopy }: { match: Match; players: Player[]; onClose: () => void; copied: boolean; onCopy: () => void }) {
   return <div className="modal-backdrop" onClick={onClose}><section className="match-modal" onClick={e => e.stopPropagation()}>
     <button className="modal-close" onClick={onClose}><X size={18}/></button>
     <span className="modal-kicker">OG ELITE • MATCH M{match.matchNumber}</span>
@@ -323,7 +350,10 @@ function MatchDetails({ match, onClose, copied, onCopy }: { match: Match; onClos
       <div><b>#{match.position}</b><small>POSITION</small></div><div><b>{match.totalPoints}</b><small>POINTS</small></div>
       <div><b>{(match.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0)}</b><small>KILLS</small></div><div><b>{match.category === 'scrim' ? 'SCRIM' : 'OFFICIAL'}</b><small>TYPE</small></div>
     </div>
-    <div className="modal-player-list">{(match.playerStats || []).map(p => <div key={p.playerId}><span>{p.playerId}</span><b>{p.kills} kills</b></div>)}</div>
+    <div className="modal-player-list">{(match.playerStats || []).map(p => {
+      const player = players.find(x => x.id === p.playerId);
+      return <div key={p.playerId}><span>{player?.name || 'Unknown player'}</span><b>{p.kills} kills</b></div>;
+    })}</div>
     <button className="copy-match" onClick={onCopy}><Copy size={15}/> {copied ? 'Copied!' : 'Copy match data'}</button>
   </section></div>;
 }
