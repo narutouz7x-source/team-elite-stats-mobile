@@ -73,8 +73,6 @@ export async function initializeNativeNotifications() {
 
     lastDiagnostic = { ...lastDiagnostic, token };
 
-    // This is intentionally a temporary diagnostic. It lets us verify that
-    // Android actually registered this installation with Firebase.
     console.info('[FCM diagnostic] registration token:', token || '(empty)');
     console.info('[FCM diagnostic] permission:', receive);
     console.info('[FCM diagnostic] supported:', supportedResult.isSupported);
@@ -104,7 +102,10 @@ export async function initializeNativeNotifications() {
       const data = event.notification?.data as Record<string, unknown> | undefined;
       const url = data?.url;
       if (typeof url === 'string' && url.length > 0) {
-        window.location.href = url;
+        const target = url.startsWith('http')
+          ? url
+          : (import.meta.env.VITE_API_URL || 'https://team-elite-stats.vercel.app').replace(/\/$/, '') + '/' + url.replace(/^\//, '');
+        window.location.href = target;
       }
     });
 
