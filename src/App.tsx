@@ -232,7 +232,7 @@ export function App() {
             <section className="mobile-creator-grid">
               {creators.length ? creators.map(creator => <article className="mobile-creator-card" key={creator.id}>
                 <div className="mobile-creator-image">{creator.imageUrl ? <img src={creator.imageUrl} alt={creator.name} /> : <div>{creator.name.slice(0,2).toUpperCase()}</div>}
-                  {creator.featured && <small>FEATURED</small>}<div className="mobile-creator-name"><h2>{creator.name}</h2>{creator.handle && <span>{creator.handle}</span>}</div>
+                  {creator.featured && <small>FEATURED</small>}<div className="mobile-creator-name"><h2>{creator.name}</h2></div>{creator.handle && <span className="mobile-creator-handle">{creator.handle}</span>}
                 </div>
                 <div className="mobile-creator-body"><p>{creator.bio || 'OG ELITE community creator.'}</p><div className="mobile-creator-links">
                   {creator.youtube && <a href={creator.youtube} target="_blank" rel="noreferrer">▶ YOUTUBE</a>}
@@ -267,7 +267,8 @@ export function App() {
         <NavButton active={tab === 'home'} label="Home" icon={<Home size={20} />} onClick={() => setTab('home')} />
         <NavButton active={tab === 'matches'} label="Matches" icon={<Swords size={20} />} onClick={() => setTab('matches')} />
         <NavButton active={tab === 'team'} label="Team" icon={<Users size={20} />} onClick={() => setTab('team')} />
-        <NavButton active={tab === 'clips'} label="Clips" icon={<Play size={20} />} onClick={() => setTab('clips')} />\n        <NavButton active={tab === 'crew'} label="Crew" icon={<Users size={20} />} onClick={() => setTab('crew')} />
+        <NavButton active={tab === 'clips'} label="Clips" icon={<Play size={20} />} onClick={() => setTab('clips')} />
+        <NavButton active={tab === 'crew'} label="Crew" icon={<Users size={20} />} onClick={() => setTab('crew')} />
         <button className="refresh" onClick={() => void load()} aria-label="Refresh"><RefreshCw size={18} /></button>
       </nav>
 
