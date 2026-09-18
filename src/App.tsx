@@ -64,7 +64,12 @@ export function App() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { void load(); void initializeNativeNotifications(); }, []);
+  useEffect(() => {
+    void load();
+    void initializeNativeNotifications().then(diagnostic => {
+      if (diagnostic?.error) console.warn('[FCM diagnostic] app status:', diagnostic);
+    });
+  }, []);
   useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
