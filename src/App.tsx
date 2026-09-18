@@ -3,7 +3,7 @@ import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, S
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 
-type Tab = 'home' | 'matches' | 'team' | 'alerts';
+type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
 
 const relativeTime = (timestamp?: number) => {
   if (!timestamp) return '—';
@@ -29,6 +29,10 @@ export function App() {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [copied, setCopied] = useState(false);
+  const [clipSubmitOpen, setClipSubmitOpen] = useState(false);
+  const [clipBusy, setClipBusy] = useState(false);
+  const [clipMessage, setClipMessage] = useState('');
+  const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -183,6 +187,63 @@ export function App() {
           </>
         )}
 
+        {tab === 'clips' && (
+          <>
+            <section className="mobile-content-hero">
+              <div><span>OG ELITE / COMMUNITY</span><h1>CLIPS</h1><p>Best plays, clutch moments and highlights from the OG ELITE community.</p></div>
+              <button className="clip-submit-button" onClick={() => { setClipSubmitOpen(true); setClipMessage(''); }}>+ SUBMIT A CLIP</button>
+            </section>
+            <section className="mobile-clips-grid">
+              {clips.length === 0 ? <div className="mobile-empty-feature"><b>NO CLIPS YET</b><span>Be the first fan to submit a highlight.</span><button onClick={() => setClipSubmitOpen(true)}>SUBMIT YOUR CLIP</button></div> :
+                clips.map(clip => <article className={'mobile-full-clip ' + (clip.featured ? 'featured' : '')} key={clip.id}>
+                  <div className="mobile-clip-media"><span>{clip.platform}</span><b>▶</b></div>
+                  <div className="mobile-clip-info">{clip.featured && <small>FEATURED</small>}<h2>{clip.title}</h2><p>{clip.creatorName || clip.submittedBy}</p><a href={clip.url} target="_blank" rel="noreferrer">WATCH CLIP ↗</a></div>
+                </article>)
+              }
+            </section>
+            {clipSubmitOpen && <div className="clip-submit-modal" onClick={() => setClipSubmitOpen(false)}>
+              <form onSubmit={async e => {
+                e.preventDefault(); setClipBusy(true); setClipMessage('');
+                try {
+                  const r = await fetch((import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/clips', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(clipForm) });
+                  const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Could not submit clip.');
+                  setClipMessage('Submitted! Your clip is now waiting for OG ELITE moderation.');
+                  setClipForm({url:'',title:'',submittedBy:'',creatorName:''});
+                  const fresh = await api.clips(); setClips(fresh);
+                } catch (e) { setClipMessage(e instanceof Error ? e.message : 'Could not submit clip.'); }
+                finally { setClipBusy(false); }
+              }} onClick={e => e.stopPropagation()}>
+                <button type="button" className="clip-modal-close" onClick={() => setClipSubmitOpen(false)}>×</button>
+                <span>COMMUNITY SUBMISSION</span><h2>Submit a clip</h2><p>Every submission is reviewed before it appears publicly.</p>
+                <label>CLIP URL<input required type="url" value={clipForm.url} onChange={e=>setClipForm({...clipForm,url:e.target.value})} placeholder="https://youtube.com/..." /></label>
+                <label>CLIP TITLE<input value={clipForm.title} onChange={e=>setClipForm({...clipForm,title:e.target.value})} placeholder="INSANE FINAL CIRCLE CLUTCH" /></label>
+                <label>YOUR NAME / USERNAME<input value={clipForm.submittedBy} onChange={e=>setClipForm({...clipForm,submittedBy:e.target.value})} placeholder="Your name" /></label>
+                <label>PLAYER / CREATOR (OPTIONAL)<input value={clipForm.creatorName} onChange={e=>setClipForm({...clipForm,creatorName:e.target.value})} placeholder="Player name" /></label>
+                {clipMessage && <div className="clip-message">{clipMessage}</div>}
+                <button className="clip-submit-button" disabled={clipBusy}>{clipBusy ? 'SUBMITTING...' : 'SUBMIT FOR REVIEW'}</button>
+              </form>
+            </div>}
+          </>
+        )}
+
+        {tab === 'crew' && (
+          <>
+            <section className="mobile-content-hero"><div><span>OG ELITE / COMMUNITY</span><h1>OUR CREW</h1><p>Meet the creators and personalities building the OG ELITE community.</p></div></section>
+            <section className="mobile-creator-grid">
+              {creators.length ? creators.map(creator => <article className="mobile-creator-card" key={creator.id}>
+                <div className="mobile-creator-image">{creator.imageUrl ? <img src={creator.imageUrl} alt={creator.name} /> : <div>{creator.name.slice(0,2).toUpperCase()}</div>}
+                  {creator.featured && <small>FEATURED</small>}<div className="mobile-creator-name"><h2>{creator.name}</h2>{creator.handle && <span>{creator.handle}</span>}</div>
+                </div>
+                <div className="mobile-creator-body"><p>{creator.bio || 'OG ELITE community creator.'}</p><div className="mobile-creator-links">
+                  {creator.youtube && <a href={creator.youtube} target="_blank" rel="noreferrer">▶ YOUTUBE</a>}
+                  {creator.instagram && <a href={creator.instagram} target="_blank" rel="noreferrer">◎ INSTAGRAM</a>}
+                  {creator.discord && <a href={creator.discord} target="_blank" rel="noreferrer">DISCORD ↗</a>}
+                </div></div>
+              </article>) : <div className="mobile-empty-feature"><b>CREATORS WILL APPEAR HERE</b></div>}
+            </section>
+          </>
+        )}
+
         {tab === 'alerts' && (
           <>
             <PageHeading title="Notifications" subtitle="Match updates, content drops and admin announcements." />
@@ -206,7 +267,7 @@ export function App() {
         <NavButton active={tab === 'home'} label="Home" icon={<Home size={20} />} onClick={() => setTab('home')} />
         <NavButton active={tab === 'matches'} label="Matches" icon={<Swords size={20} />} onClick={() => setTab('matches')} />
         <NavButton active={tab === 'team'} label="Team" icon={<Users size={20} />} onClick={() => setTab('team')} />
-        <NavButton active={tab === 'alerts'} label="Alerts" icon={<Bell size={20} />} onClick={() => setTab('alerts')} />
+        <NavButton active={tab === 'clips'} label="Clips" icon={<Play size={20} />} onClick={() => setTab('clips')} />\n        <NavButton active={tab === 'crew'} label="Crew" icon={<Users size={20} />} onClick={() => setTab('crew')} />
         <button className="refresh" onClick={() => void load()} aria-label="Refresh"><RefreshCw size={18} /></button>
       </nav>
 
