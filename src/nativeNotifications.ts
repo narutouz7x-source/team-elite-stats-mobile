@@ -4,14 +4,56 @@ import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 const NOTIFICATION_TOPIC = 'og_elite';
 const CHANNEL_ID = 'og_elite_updates';
 
+export type NotificationDiagnostic = {
+  supported: boolean;
+  permission: string;
+  token: string;
+  topicSubscribed: boolean;
+  channelCreated: boolean;
+  error: string;
+};
+
+let lastDiagnostic: NotificationDiagnostic = {
+  supported: false,
+  permission: 'unknown',
+  token: '',
+  topicSubscribed: false,
+  channelCreated: false,
+  error: '',
+};
+
+export function getNotificationDiagnostic() {
+  return lastDiagnostic;
+}
+
 export async function initializeNativeNotifications() {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!Capacitor.isNativePlatform()) return lastDiagnostic;
 
   try {
+    const supportedResult = await FirebaseMessaging.isSupported();
+    lastDiagnostic = {
+      ...lastDiagnostic,
+      supported: supportedResult.isSupported,
+      error: '',
+    };
+
     const permission = await FirebaseMessaging.checkPermissions();
-    if (permission.receive !== 'granted') {
+    let receive = permission.receive;
+
+    if (receive !== 'granted') {
       const requested = await FirebaseMessaging.requestPermissions();
-      if (requested.receive !== 'granted') return;
+      receive = requested.receive;
+    }
+
+    lastDiagnostic = { ...lastDiagnostic, permission: receive };
+
+    if (receive !== 'granted') {
+      lastDiagnostic = {
+        ...lastDiagnostic,
+        error: 'Notification permission was not granted.',
+      };
+      console.warn('[FCM diagnostic]', lastDiagnostic);
+      return lastDiagnostic;
     }
 
     await FirebaseMessaging.createChannel({
@@ -24,21 +66,53 @@ export async function initializeNativeNotifications() {
       vibration: true,
     });
 
+    lastDiagnostic = { ...lastDiagnostic, channelCreated: true };
+
+    const tokenResult = await FirebaseMessaging.getToken();
+    const token = tokenResult.token || '';
+
+    lastDiagnostic = { ...lastDiagnostic, token };
+
+    // This is intentionally a temporary diagnostic. It lets us verify that
+    // Android actually registered this installation with Firebase.
+    console.info('[FCM diagnostic] registration token:', token || '(empty)');
+    console.info('[FCM diagnostic] permission:', receive);
+    console.info('[FCM diagnostic] supported:', supportedResult.isSupported);
+
     await FirebaseMessaging.subscribeToTopic({ topic: NOTIFICATION_TOPIC });
 
-    await FirebaseMessaging.addListener('notificationReceived', () => {
-      // Native Android displays background push notifications automatically.
-      // This listener is intentionally kept for foreground delivery.
+    lastDiagnostic = {
+      ...lastDiagnostic,
+      topicSubscribed: true,
+      error: '',
+    };
+
+    console.info('[FCM diagnostic] subscribed to topic:', NOTIFICATION_TOPIC);
+    console.info('[FCM diagnostic] ready:', lastDiagnostic);
+
+    await FirebaseMessaging.addListener('tokenReceived', event => {
+      lastDiagnostic = { ...lastDiagnostic, token: event.token, error: '' };
+      console.info('[FCM diagnostic] token refreshed:', event.token);
+    });
+
+    await FirebaseMessaging.addListener('notificationReceived', event => {
+      console.info('[FCM diagnostic] notification received:', event.notification);
     });
 
     await FirebaseMessaging.addListener('notificationActionPerformed', event => {
+      console.info('[FCM diagnostic] notification tapped:', event.notification);
       const data = event.notification?.data as Record<string, unknown> | undefined;
       const url = data?.url;
       if (typeof url === 'string' && url.length > 0) {
         window.location.href = url;
       }
     });
+
+    return lastDiagnostic;
   } catch (error) {
-    console.warn('Native notifications are not configured yet.', error);
+    const message = error instanceof Error ? error.message : String(error);
+    lastDiagnostic = { ...lastDiagnostic, error: message };
+    console.error('[FCM diagnostic] initialization failed:', message, error);
+    return lastDiagnostic;
   }
 }
