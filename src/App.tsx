@@ -45,7 +45,7 @@ export function App() {
   const [clipBusy, setClipBusy] = useState(false);
   const [clipMessage, setClipMessage] = useState('');
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
-  const [selectedStage, setSelectedStage] = useState<string>('all');
+  const [selectedStage, setSelectedStage] = useState<string>('overall');
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,7 +59,18 @@ export function App() {
         api.settings(), api.tournaments(), api.players(), api.matches(), api.notifications(), api.playerStats(), api.clips(), api.creators()
       ]);
       setSettings(s); setTournaments(t); setPlayers(p); setMatches(m); setNotifications(n); setPlayerStats(pstats); setClips(clipsData); setCreators(creatorsData);
-      if (t[0]) setStages(await api.stages(t[0].id));
+      const latestByCategory = { official: 0, scrim: 0 };
+      for (const match of m) {
+        const category = match.category === 'scrim' ? 'scrim' : 'official';
+        const timestamp = Number(match.timestamp) || 0;
+        if (timestamp > latestByCategory[category]) latestByCategory[category] = timestamp;
+      }
+      const latestCategory = latestByCategory.scrim > latestByCategory.official ? 'scrim' : 'official';
+      setSelectedCategory(latestCategory);
+      const firstTournament = t.find(x => x.active && (x.category || 'official') === latestCategory)
+        ?? t.find(x => (x.category || 'official') === latestCategory)
+        ?? t[0];
+      if (firstTournament) setStages(await api.stages(firstTournament.id));
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
     finally { setLoading(false); }
   }
@@ -73,20 +84,59 @@ export function App() {
   useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
-  const visibleMatches = useMemo(() => (selectedStage === 'all' ? categoryMatches : categoryMatches.filter(m => m.weekId === selectedStage)).slice().sort((a,b) => b.timestamp-a.timestamp), [categoryMatches, selectedStage]);
+  const tournamentMatches = useMemo(() => categoryMatches
+    .filter(m => !activeTournament || m.tournamentId === activeTournament.id)
+    .slice()
+    .sort((a,b) => b.timestamp - a.timestamp), [categoryMatches, activeTournament?.id]);
+
+  useEffect(() => {
+    if (selectedStage !== 'overall' && !stages.some(stage => stage.id === selectedStage)) setSelectedStage('overall');
+  }, [selectedCategory, activeTournament?.id, stages, selectedStage]);
+
+  const visibleMatches = useMemo(() => (selectedStage === 'overall'
+    ? tournamentMatches
+    : tournamentMatches.filter(m => m.weekId === selectedStage)
+  ).slice().sort((a,b) => b.timestamp-a.timestamp), [tournamentMatches, selectedStage]);
+
+  const selectedStageName = stages.find(stage => stage.id === selectedStage)?.name;
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
+  const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
   return <div className="app-shell">
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
-        <section className="stats-overview">
-          <div className="stats-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div>
-          <div className="section-title"><span>{selectedCategory === 'scrim' ? 'Scrim stats' : 'Official stats'}</span><Trophy size={18}/></div>
-          <div className="stats-grid"><div><Users size={18}/><strong>{players.length}</strong><span>Players</span></div><div><Swords size={18}/><strong>{matches.length}</strong><span>Matches</span></div><div><Flame size={18}/><strong>{totalKills}</strong><span>Total kills</span></div></div>
+        <section className="mobile-overview-hero">
+          <div><span>OG ELITE / LIVE PERFORMANCE CENTER</span><h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1><p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p></div>
+          <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
         </section>
-        <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
-        <MatchList matches={visibleMatches} onView={setSelectedMatch}/>
+        {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
+        <section className="mobile-overview-stats">
+          <article><small>TEAM POINTS</small><strong>{totalPoints}</strong><span>{selectedStageName || 'LIVE RESULTS'}</span></article>
+          <article><small>ELIMINATIONS</small><strong>{totalKills}</strong><span>PLAYER TOTAL</span></article>
+          <article><small>MATCHES PLAYED</small><strong>{visibleMatches.length}</strong><span>{selectedStageName || 'RECORDED MATCHES'}</span></article>
+          <article className="accent"><small>ROSTER</small><strong>{players.length}</strong><span>ACTIVE PLAYERS</span></article>
+        </section>
+        <section className="mobile-overview-content">
+          <div className="mobile-overview-panel mobile-overview-results">
+            <div className="mobile-overview-panel-head"><div><span>LATEST RESULTS</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>VIEW HISTORY →</button></div>
+            <div className="mobile-overview-match-list">
+              {visibleMatches.length === 0 ? <EmptyState text="No match results for this stage yet."/> : visibleMatches.slice(0,8).map(match => <article className="mobile-overview-match" key={match.id} onClick={()=>setSelectedMatch(match)}>
+                <div className="overview-match-no">M{match.matchNumber}</div><div className="overview-match-info"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>{activeTournament?.name || 'TOURNAMENT'} • {match.category || selectedCategory}</span></div>
+                <div className="overview-match-stat"><small>PLACE</small><b>#{match.position}</b></div><div className="overview-match-stat"><small>KILLS</small><b>{(match.playerStats || []).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b></div><div className="overview-match-stat"><small>POINTS</small><b>{match.totalPoints}</b></div><span className="overview-match-view">VIEW</span>
+              </article>)}
+            </div>
+          </div>
+          <div className="mobile-overview-panel">
+            <div className="mobile-overview-panel-head"><div><span>TABLE</span><h2>Squad output</h2></div><button onClick={()=>setTab('team')}>FULL ROSTER →</button></div>
+            <div className="mobile-overview-bars">{players.map((player,index)=>{
+              const rows=visibleMatches.flatMap(match=>(match.playerStats || []).filter(stat=>stat.playerId===player.id));
+              const kills=rows.reduce((n,stat)=>n+(Number(stat.kills)||0),0);
+              const width=Math.min(100,kills*4);
+              return <div className="overview-bar-row" key={player.id}><div><span>{String(index+1).padStart(2,'0')}</span><strong>{player.name}</strong></div><div className="overview-bar-track"><i style={{width: width + '%'}}/></div><b>{kills}</b></div>;
+            })}{players.length===0&&<EmptyState text="No roster data available yet."/>}</div>
+          </div>
+        </section>
       </>}
 
       {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={setSelectedMatch}/></>}
@@ -109,7 +159,7 @@ export function App() {
 function SocialIcon({type}:{type:'youtube'|'instagram'}){if(type==='youtube')return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="18" height="12" rx="4" fill="currentColor"/><path d="m10 9 5 3-5 3V9Z" fill="#0a0d0b" stroke="none"/></svg>;return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none"/><circle cx="12" cy="12" r="4" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" stroke="none"/></svg>}
 function NavButton({active,label,icon,onClick}:{active:boolean;label:string;icon:React.ReactNode;onClick:()=>void}){return <button className={active?'nav-item active':'nav-item'} onClick={onClick}>{icon}<span>{label}</span></button>}
 function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>}
-function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <div className="stage-scroll"><button className={selected==='all'?'stage active':'stage'} onClick={()=>onSelect('all')}>All</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div>}
+function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>WEEK / PHASE</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>OVERALL</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
 function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
 function placementPoints(position:number){const rankPoints:Record<number,number>={1:12,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};return rankPoints[position]||0}
 function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],allMatches:Match[],selectedStage:string){const tournament=tournaments.find(t=>t.id===match.tournamentId);const category=match.category||tournament?.category||'official';const stageMatches=allMatches.filter(m=>(m.category||'official')===category).filter(m=>m.tournamentId===match.tournamentId).filter(m=>selectedStage==='all'||m.weekId===selectedStage);const overallPoints=stageMatches.reduce((sum,m)=>sum+(Number(m.totalPoints)||0),0);const playerLines=(match.playerStats||[]).map(s=>{const player=players.find(p=>p.id===s.playerId);return(player?.name||'Unknown player')+': '+s.kills}).join('\n');return[tournament?.name||(category==='scrim'?'9 pm scrims':'OG ELITE'),'','Match '+match.matchNumber,(match.mapName||'Free Fire MAX').toUpperCase(),' ',playerLines||'No player stats recorded.','','Rank: #'+match.position+' ('+placementPoints(match.position)+' PTS)','Total: '+match.totalPoints+' PTS','Overall: '+overallPoints+' PTS'].join('\n')}
