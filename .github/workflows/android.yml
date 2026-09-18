@@ -21,6 +21,23 @@ jobs:
           VITE_API_URL: https://team-elite-stats.vercel.app
       - run: npx cap add android
       - run: cp google-services.json android/app/google-services.json
+      - name: Configure Google Services Gradle plugin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('android/build.gradle')
+          app = Path('android/app/build.gradle')
+          s = root.read_text()
+          if 'com.google.gms:google-services' not in s:
+              marker = 'dependencies {\n'
+              s = s.replace(marker, marker + "        classpath 'com.google.gms:google-services:4.4.2'\n", 1)
+          root.write_text(s)
+          a = app.read_text()
+          if "id 'com.google.gms.google-services'" not in a:
+              marker = "plugins {\n"
+              a = a.replace(marker, marker + "    id 'com.google.gms.google-services'\n", 1)
+          app.write_text(a)
+          PY
       - run: cp assets/og-elite-icon.png assets/icon.png
       - run: npm install -D @capacitor/assets
       - run: npx capacitor-assets generate --android
