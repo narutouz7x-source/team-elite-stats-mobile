@@ -32,7 +32,8 @@ export async function initializeNativeNotifications() {
     });
 
     await FirebaseMessaging.addListener('notificationActionPerformed', event => {
-      const url = event.notification?.data?.url;
+      const data = event.notification?.data as Record<string, unknown> | undefined;
+      const url = data?.url;
       if (typeof url === 'string' && url.length > 0) {
         window.location.href = url;
       }
