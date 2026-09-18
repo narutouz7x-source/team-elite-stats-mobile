@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish APK release
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           VERSION="v$(node -p "require('./package.json').version")"
