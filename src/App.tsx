@@ -86,7 +86,7 @@ export function App() {
           <div className="stats-grid"><div><Users size={18}/><strong>{players.length}</strong><span>Players</span></div><div><Swords size={18}/><strong>{matches.length}</strong><span>Matches</span></div><div><Flame size={18}/><strong>{totalKills}</strong><span>Total kills</span></div></div>
         </section>
         <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
-        <MatchList matches={visibleMatches.slice(0,4)} onView={setSelectedMatch}/>
+        <MatchList matches={visibleMatches} onView={setSelectedMatch}/>
       </>}
 
       {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={setSelectedMatch}/></>}
