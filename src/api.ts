@@ -15,5 +15,8 @@ export const api = {
   players: () => request<import('./types').Player[]>('/api/players'),
   matches: () => request<import('./types').Match[]>('/api/matches'),
   stages: (tournamentId: string) => request<import('./types').Stage[]>(`/api/weeks?tournamentId=${encodeURIComponent(tournamentId)}`),
-  notifications: () => request<import('./types').Notification[]>('/api/notifications')
+  notifications: () => request<import('./types').Notification[]>('/api/notifications'),
+  playerStats: () => request<Record<string, import('./types').PlayerStat>>('/api/players/stats'),
+  clips: () => request<import('./types').Clip[]>('/api/clips'),
+  creators: () => request<import('./types').Creator[]>('/api/creators')
 };
