@@ -2,8 +2,7 @@ const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 async function request<T>(path: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store'
+    headers: { Accept: 'application/json' }
   });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<T>;
