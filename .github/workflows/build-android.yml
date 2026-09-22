@@ -23,6 +23,26 @@ jobs:
 
       - run: npm install
 
+      # Automatically create the next patch release for every new build.
+      # Example: v1.0.2 -> v1.0.3 -> v1.0.4 ...
+      - name: Bump release version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LATEST_TAG="$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)"
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v$(node -p "require('./package.json').version")"
+          fi
+          BASE="${LATEST_TAG#v}"
+          NEXT="$(node -e 'const p=process.argv[1].split(".").map(Number); console.log(p[0]+"."+p[1]+"."+(p[2]+1))' "$BASE")"
+          npm version "$NEXT" --no-git-tag-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --quiet || git commit -m "Bump app version to $NEXT"
+          git push origin HEAD:main
+
       - run: npm run build
         env:
           VITE_API_URL: https://team-elite-stats.vercel.app
