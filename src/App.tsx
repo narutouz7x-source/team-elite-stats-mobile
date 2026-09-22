@@ -7,7 +7,6 @@ import { initializeNativeNotifications } from './nativeNotifications';
 import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
-
 type AppUpdate = { version: string; url: string; notes?: string };
 
 const mediaUrl = (value?: string) => {
@@ -196,19 +195,7 @@ export function App() {
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
     <nav className="bottom-nav"><NavButton active={tab==='home'} label="Home" icon={<Home size={20}/>} onClick={()=>setTab('home')}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={20}/>} onClick={()=>setTab('matches')}/><NavButton active={tab==='team'} label="Team" icon={<Users size={20}/>} onClick={()=>setTab('team')}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={20}/>} onClick={()=>setTab('clips')}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={20}/>} onClick={()=>setTab('crew')}/><button className="refresh" onClick={()=>void load()} aria-label="Refresh"><RefreshCw size={18}/></button></nav>
-    {appUpdate && <div className="app-update-backdrop">
-      <section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title">
-        <div className="app-update-icon"><RefreshCw size={20}/></div>
-        <span>OG ELITE STATS • UPDATE</span>
-        <h2 id="app-update-title">New update available</h2>
-        <p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>
-        {appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}
-        <div className="app-update-actions">
-          <button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button>
-          <button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button>
-        </div>
-      </section>
-    </div>}
+    {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS • UPDATE</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button></div></section></div>}
     <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
   </div>;
@@ -220,7 +207,17 @@ function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <se
 function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>WEEK / PHASE</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>OVERALL</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
 function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
 function placementPoints(position:number){const rankPoints:Record<number,number>={1:12,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};return rankPoints[position]||0}
-function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],allMatches:Match[],selectedStage:string){const tournament=tournaments.find(t=>t.id===match.tournamentId);const category=match.category||tournament?.category||'official';const stageMatches=allMatches.filter(m=>(m.category||'official')===category).filter(m=>m.tournamentId===match.tournamentId).filter(m=>selectedStage==='all'||m.weekId===selectedStage);const overallPoints=stageMatches.reduce((sum,m)=>sum+(Number(m.totalPoints)||0),0);const playerLines=(match.playerStats||[]).map(s=>{const player=players.find(p=>p.id===s.playerId);return(player?.name||'Unknown player')+': '+s.kills}).join('\n');return[tournament?.name||(category==='scrim'?'9 pm scrims':'OG ELITE'),'','Match '+match.matchNumber,(match.mapName||'Free Fire MAX').toUpperCase(),' ',playerLines||'No player stats recorded.','','Rank: #'+match.position+' ('+placementPoints(match.position)+' PTS)','Total: '+match.totalPoints+' PTS','Overall: '+overallPoints+' PTS'].join('\n')}
+function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],allMatches:Match[],selectedStage:string){
+  const tournament=tournaments.find(t=>t.id===match.tournamentId);
+  const category=match.category||tournament?.category||'official';
+  const stageMatches=allMatches
+    .filter(m=>(m.category||'official')===category)
+    .filter(m=>m.tournamentId===match.tournamentId)
+    .filter(m=>selectedStage==='overall'||selectedStage==='all'||m.weekId===selectedStage);
+  const overallPoints=stageMatches.reduce((sum,m)=>sum+(Number(m.totalPoints)||0),0);
+  const playerLines=(match.playerStats||[]).map(s=>{const player=players.find(p=>p.id===s.playerId);return(player?.name||'Unknown player')+': '+s.kills}).join('\n');
+  return[tournament?.name||(category==='scrim'?'9 pm scrims':'OG ELITE'),'','Match '+match.matchNumber,(match.mapName||'Free Fire MAX').toUpperCase(),' ',playerLines||'No player stats recorded.','','Rank: #'+match.position+' ('+placementPoints(match.position)+' PTS)','Total: '+match.totalPoints+' PTS','Overall: '+overallPoints+' PTS'].join('\n')
+}
 function MatchDetails({match,players,onClose,copied,onCopy}:{match:Match;players:Player[];onClose:()=>void;copied:boolean;onCopy:()=>void}){return <div className="modal-backdrop" onClick={onClose}><section className="match-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={18}/></button><span className="modal-kicker">OG ELITE • MATCH M{match.matchNumber}</span><h2>{match.mapName||'Battle Royale'}</h2><div className="detail-grid"><div><b>#{match.position}</b><small>POSITION</small></div><div><b>{match.totalPoints}</b><small>POINTS</small></div><div><b>{(match.playerStats||[]).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b><small>KILLS</small></div><div><b>{match.category==='scrim'?'SCRIM':'OFFICIAL'}</b><small>TYPE</small></div></div><div className="modal-player-list">{(match.playerStats||[]).map(p=>{const player=players.find(x=>x.id===p.playerId);return <div key={p.playerId}><span>{player?.name||'Unknown player'}</span><b>{p.kills} kills</b></div>})}</div><button className="copy-match" onClick={onCopy}><Copy size={15}/> {copied?'Copied!':'Copy match data'}</button></section></div>}
 function ClipSection({clips}:{clips:Clip[]}){if(!clips.length)return null;return <section className="section"><div className="section-title"><span>Clips</span><Play size={18}/></div><div className="clip-grid">{clips.map(clip=><a className="clip-card" key={clip.id} href={clip.url} target="_blank" rel="noreferrer"><div className="clip-icon"><Play size={17}/></div><div><strong>{clip.title}</strong><span>{clip.platform}{clip.creatorName?' • '+clip.creatorName:''}</span></div><ExternalLink size={14}/></a>)}</div></section>}
 function CrewSection({creators}:{creators:Creator[]}){if(!creators.length)return null;return <section className="section"><div className="section-title"><span>Crew</span><Users size={18}/></div><div className="crew-grid">{creators.map(creator=><article className="crew-card" key={creator.id}>{creator.imageUrl?<img src={creator.imageUrl} alt=""/>:<div className="crew-avatar">{creator.name.slice(0,1)}</div>}<div><strong>{creator.name}</strong><span>{creator.handle||'OG ELITE CREW'}</span>{creator.bio&&<p>{creator.bio}</p>}</div></article>)}</div></section>}
