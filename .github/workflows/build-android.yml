@@ -49,6 +49,9 @@ jobs:
 
       - run: npx cap add android
 
+      # Install native OG ELITE home-screen widgets into the generated Capacitor project.
+      - run: python3 scripts/install_widgets.py
+
       # Firebase Android configuration is required for FCM token generation.
       - run: cp google-services.json android/app/google-services.json
 
