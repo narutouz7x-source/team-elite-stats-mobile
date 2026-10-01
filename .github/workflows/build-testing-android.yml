@@ -1,0 +1,170 @@
+name: Build OG ELITE Testing APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm install
+
+      - run: npm run build
+        env:
+          VITE_API_URL: https://team-elite-stats.vercel.app
+
+      - run: npx cap add android
+
+      # Give the testing build its own Android application ID so it can be
+      # installed alongside the public OG ELITE STATS app.
+      - name: Configure testing application ID
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('android/app/build.gradle')
+          text = app.read_text()
+
+          text = text.replace(
+              'applicationId project.hasProperty("appId") ? project.appId : "com.teamelite.stats"',
+              'applicationId "com.teamelite.stats.test"'
+          )
+
+          if 'applicationId "com.teamelite.stats.test"' not in text:
+              import re
+              text, count = re.subn(
+                  r'applicationId\s+["\'][^"\']+["\']',
+                  'applicationId "com.teamelite.stats.test"',
+                  text,
+                  count=1
+              )
+              if count == 0:
+                  raise SystemExit('Could not find Android applicationId')
+
+          app.write_text(text)
+          PY
+
+      # Install native OG ELITE home-screen widgets into the generated Capacitor project.
+      - run: python3 scripts/install_widgets.py
+
+      # Firebase Android configuration is required for FCM token generation.
+      - run: cp google-services.json android/app/google-services.json
+
+      - name: Configure Google Services Gradle plugin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('android/build.gradle')
+          app = Path('android/app/build.gradle')
+
+          root_text = root.read_text()
+          if 'com.google.gms:google-services' not in root_text:
+              marker = 'dependencies {'
+              if marker not in root_text:
+                  raise SystemExit('android/build.gradle has no dependencies block')
+              root_text = root_text.replace(
+                  marker,
+                  marker + "\n        classpath 'com.google.gms:google-services:4.4.2'",
+                  1
+              )
+              root.write_text(root_text)
+
+          app_text = app.read_text()
+          if 'com.google.gms.google-services' not in app_text:
+              marker = 'plugins {'
+              if marker not in app_text:
+                  raise SystemExit('android/app/build.gradle has no plugins block')
+              app_text = app_text.replace(
+                  marker,
+                  marker + "\n    id 'com.google.gms.google-services'",
+                  1
+              )
+              app.write_text(app_text)
+          PY
+
+      - name: Configure testing signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS"; exit 1; }
+          test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD"; exit 1; }
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release-key.jks
+          test -s android/release-key.jks
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('android/app/build.gradle')
+          text = app.read_text()
+
+          if 'signingConfigs {' not in text:
+              marker = 'android {'
+              if marker not in text:
+                  raise SystemExit('android/app/build.gradle has no android block')
+              signing = '''android {
+              signingConfigs {
+                  release {
+                      storeFile file("../release-key.jks")
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+          '''
+              text = text.replace(marker + '\n', signing, 1)
+          else:
+              raise SystemExit('Unexpected existing signingConfigs block; refusing to overwrite it')
+
+          text = text.replace(
+              'buildTypes {',
+              '''buildTypes {
+              release {
+                  signingConfig signingConfigs.release
+              }''',
+              1
+          )
+
+          app.write_text(text)
+          PY
+
+      - run: cp assets/og-elite-icon.png assets/icon.png
+      - run: npm install -D @capacitor/assets
+      - run: npx capacitor-assets generate --android
+      - run: npx cap sync android
+
+      - name: Build testing APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: og-elite-stats-testing-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
