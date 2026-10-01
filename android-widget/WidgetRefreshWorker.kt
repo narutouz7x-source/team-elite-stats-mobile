@@ -153,7 +153,17 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
     }
 
     private fun downloadBitmap(url: String): Bitmap? = try {
-        if (url.isBlank()) null else URL(url).openStream().use { BitmapFactory.decodeStream(it) }
+        if (url.isBlank()) return null
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = 8000
+        connection.readTimeout = 10000
+        connection.instanceFollowRedirects = true
+        connection.requestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
+        if (connection.responseCode !in 200..299) {
+            connection.disconnect()
+            return null
+        }
+        connection.inputStream.use { BitmapFactory.decodeStream(it) }.also { connection.disconnect() }
     } catch (_: Exception) { null }
 
     private fun findById(array: JSONArray, id: String?): JSONObject? {
