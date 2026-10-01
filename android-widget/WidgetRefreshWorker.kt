@@ -158,7 +158,7 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         connection.connectTimeout = 8000
         connection.readTimeout = 10000
         connection.instanceFollowRedirects = true
-        connection.requestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
+        connection.setRequestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
         if (connection.responseCode !in 200..299) {
             connection.disconnect()
             return null
