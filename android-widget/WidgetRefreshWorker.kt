@@ -70,8 +70,9 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             val tournamentName = tournament?.optString("name", "Latest Tournament") ?: "Latest Tournament"
 
             val manager = AppWidgetManager.getInstance(applicationContext)
-            val component = android.content.ComponentName(applicationContext, PerformanceWidget::class.java)
-            val ids = manager.getAppWidgetIds(component)
+            val teamComponent = android.content.ComponentName(applicationContext, TeamPerformanceWidget::class.java)
+            val playerComponent = android.content.ComponentName(applicationContext, PlayerPerformanceWidget::class.java)
+            val ids = (manager.getAppWidgetIds(teamComponent).toList() + manager.getAppWidgetIds(playerComponent).toList()).distinct()
             val prefs = applicationContext.getSharedPreferences("og_elite_widgets", Context.MODE_PRIVATE)
 
             ids.forEach { widgetId ->
