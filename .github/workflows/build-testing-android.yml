@@ -61,40 +61,26 @@ jobs:
       # Install native OG ELITE home-screen widgets into the generated Capacitor project.
       - run: python3 scripts/install_widgets.py
 
-      # Firebase Android configuration is required for FCM token generation.
-      - run: cp google-services.json android/app/google-services.json
-
-      - name: Configure Google Services Gradle plugin
+      # Testing builds use a separate package ID so they can coexist with the public app.
+      # We intentionally do not apply the Google Services Gradle plugin here because the
+      # production google-services.json only registers com.teamelite.stats. This keeps
+      # Firebase/production configuration isolated from the test package.
+      - name: Label testing app
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          root = Path('android/build.gradle')
-          app = Path('android/app/build.gradle')
-
-          root_text = root.read_text()
-          if 'com.google.gms:google-services' not in root_text:
-              marker = 'dependencies {'
-              if marker not in root_text:
-                  raise SystemExit('android/build.gradle has no dependencies block')
-              root_text = root_text.replace(
-                  marker,
-                  marker + "\n        classpath 'com.google.gms:google-services:4.4.2'",
-                  1
+          strings = Path('android/app/src/main/res/values/strings.xml')
+          if strings.exists():
+              text = strings.read_text()
+              text = re.sub(
+                  r'<string name="app_name">.*?</string>',
+                  '<string name="app_name">OG ELITE STATS TEST</string>',
+                  text,
+                  count=1
               )
-              root.write_text(root_text)
-
-          app_text = app.read_text()
-          if 'com.google.gms.google-services' not in app_text:
-              marker = 'plugins {'
-              if marker not in app_text:
-                  raise SystemExit('android/app/build.gradle has no plugins block')
-              app_text = app_text.replace(
-                  marker,
-                  marker + "\n    id 'com.google.gms.google-services'",
-                  1
-              )
-              app.write_text(app_text)
+              strings.write_text(text)
           PY
 
       - name: Configure testing signing
