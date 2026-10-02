@@ -157,10 +157,17 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon
         working-directory: android
 
+      # Rename the generated APK so users never see the generic app-release.apk name.
+      - name: Rename release APK
+        run: |
+          set -euo pipefail
+          VERSION="v$(node -p "require('./package.json').version")"
+          mv android/app/build/outputs/apk/release/app-release.apk "android/app/build/outputs/apk/release/OG-ELITE-STATS-${VERSION}.apk"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: og-elite-stats-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: OG-ELITE-STATS-release-apk-${{ github.run_number }}
+          path: android/app/build/outputs/apk/release/OG-ELITE-STATS-v*.apk
           retention-days: 30
 
       - name: Publish APK release
@@ -169,7 +176,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="v$(node -p "require('./package.json').version")"
-          APK="android/app/build/outputs/apk/release/app-release.apk"
+          APK="android/app/build/outputs/apk/release/OG-ELITE-STATS-${VERSION}.apk"
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release upload "$VERSION" "$APK" --clobber
           else
