@@ -125,6 +125,7 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             allIds.forEach { widgetId ->
                 val isPlayerWidget = playerIds.contains(widgetId)
                 val playerId = prefs.getString("player_$widgetId", null)
+                val effectivePlayerId = playerId ?: players.optJSONObject(0)?.optString("id", null)
                 val options = manager.getAppWidgetOptions(widgetId)
                 val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
                 val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 150)
@@ -138,10 +139,10 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
                 val views = RemoteViews(applicationContext.packageName, layout)
 
                 if (isPlayerWidget) {
-                    if (playerId.isNullOrBlank()) {
+                    if (effectivePlayerId.isNullOrBlank()) {
                         renderPlayerPlaceholder(views, tournamentName, isStrip)
                     } else {
-                        val player = findById(players, playerId)
+                        val player = findById(players, effectivePlayerId)
                         renderPlayer(views, player, tournamentName, tournamentMatches, isStrip)
                     }
                 } else {
