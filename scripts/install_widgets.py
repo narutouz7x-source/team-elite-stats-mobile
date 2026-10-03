@@ -15,7 +15,7 @@ DRAWABLE.mkdir(parents=True, exist_ok=True)
 for name in ["PerformanceWidget.kt", "WidgetRefreshWorker.kt", "WidgetRefreshService.kt", "WidgetConfigActivity.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
-for name in ["widget_team.xml", "widget_player.xml"]:
+for name in ["widget_team.xml", "widget_player.xml", "widget_team_strip.xml", "widget_player_strip.xml"]:
     (LAYOUT / name).write_text((SRC / name).read_text())
 
 for name in ["widget_bg.xml", "widget_badge_bg.xml"]:
