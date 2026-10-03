@@ -27,6 +27,17 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
             WorkManager.getInstance(context).enqueue(request)
         }
+
+        fun schedulePeriodic(context: Context) {
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "og_elite_widget_periodic",
+                androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+                androidx.work.PeriodicWorkRequestBuilder<WidgetRefreshWorker>(
+                    15,
+                    java.util.concurrent.TimeUnit.MINUTES
+                ).build()
+            )
+        }
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
