@@ -1,12 +1,15 @@
 package com.teamelite.stats.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.widget.RemoteViews
 import androidx.work.CoroutineWorker
+import androidx.work.WorkManager
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,17 +17,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     companion object {
         private const val API = "https://team-elite-stats.vercel.app"
+
         fun enqueue(context: Context, immediate: Boolean = false) {
-            val request = if (immediate) {
-                androidx.work.OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
-            } else {
-                androidx.work.OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
-            }
-            androidx.work.WorkManager.getInstance(context).enqueue(request)
+            val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
+            WorkManager.getInstance(context).enqueue(request)
         }
     }
 
@@ -38,18 +39,19 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             var latestTournamentId: String? = null
             var latestTimestamp = Long.MIN_VALUE
             for (i in 0 until matches.length()) {
-                val m = matches.getJSONObject(i)
-                val ts = m.optLong("timestamp", 0L)
-                if (ts > latestTimestamp) {
-                    latestTimestamp = ts
-                    latestTournamentId = m.optString("tournamentId", null)
+                val match = matches.getJSONObject(i)
+                val timestamp = match.optLong("timestamp", 0L)
+                if (timestamp > latestTimestamp) {
+                    latestTimestamp = timestamp
+                    latestTournamentId = match.optString("tournamentId", null)
                 }
             }
-            if (latestTournamentId == null) {
+
+            if (latestTournamentId.isNullOrBlank()) {
                 for (i in 0 until tournaments.length()) {
-                    val t = tournaments.getJSONObject(i)
-                    if (t.optBoolean("active", false)) {
-                        latestTournamentId = t.optString("id", null)
+                    val tournament = tournaments.getJSONObject(i)
+                    if (tournament.optBoolean("active", false)) {
+                        latestTournamentId = tournament.optString("id", null)
                         break
                     }
                 }
@@ -58,8 +60,8 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             val tournament = findById(tournaments, latestTournamentId)
             val tournamentMatches = mutableListOf<JSONObject>()
             for (i in 0 until matches.length()) {
-                val m = matches.getJSONObject(i)
-                if (m.optString("tournamentId") == latestTournamentId) tournamentMatches.add(m)
+                val match = matches.getJSONObject(i)
+                if (match.optString("tournamentId") == latestTournamentId) tournamentMatches.add(match)
             }
             tournamentMatches.sortByDescending { it.optLong("timestamp", 0L) }
 
@@ -70,86 +72,145 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             val tournamentName = tournament?.optString("name", "Latest Tournament") ?: "Latest Tournament"
 
             val manager = AppWidgetManager.getInstance(applicationContext)
-            val teamComponent = android.content.ComponentName(applicationContext, TeamPerformanceWidget::class.java)
-            val playerComponent = android.content.ComponentName(applicationContext, PlayerPerformanceWidget::class.java)
-            val ids = (manager.getAppWidgetIds(teamComponent).toList() + manager.getAppWidgetIds(playerComponent).toList()).distinct()
+            val teamComponent = ComponentName(applicationContext, TeamPerformanceWidget::class.java)
+            val playerComponent = ComponentName(applicationContext, PlayerPerformanceWidget::class.java)
+            val teamIds = manager.getAppWidgetIds(teamComponent).toSet()
+            val playerIds = manager.getAppWidgetIds(playerComponent).toSet()
+            val allIds = (teamIds + playerIds).distinct()
             val prefs = applicationContext.getSharedPreferences("og_elite_widgets", Context.MODE_PRIVATE)
 
-            ids.forEach { widgetId ->
+            allIds.forEach { widgetId ->
+                val isPlayerWidget = playerIds.contains(widgetId)
                 val playerId = prefs.getString("player_$widgetId", null)
-                val views = RemoteViews(applicationContext.packageName, R.layout.widget_performance)
-                if (playerId == null) {
-                    renderTeam(views, settings, tournamentName, teamRank, teamPoints, tournamentMatches.size, matchNumber)
+                val layout = if (isPlayerWidget) R.layout.widget_player else R.layout.widget_team
+                val views = RemoteViews(applicationContext.packageName, layout)
+
+                if (isPlayerWidget) {
+                    if (playerId.isNullOrBlank()) {
+                        renderPlayerPlaceholder(views, tournamentName)
+                    } else {
+                        val player = findById(players, playerId)
+                        renderPlayer(views, player, tournamentName, tournamentMatches)
+                    }
                 } else {
-                    val player = findById(players, playerId)
-                    renderPlayer(views, player, tournamentName, tournamentMatches)
+                    renderTeam(views, settings, tournamentName, teamRank, teamPoints, tournamentMatches.size, matchNumber)
                 }
+
                 val launch = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
                 if (launch != null) {
-                    views.setOnClickPendingIntent(widgetId, PendingIntent.getActivity(
-                        applicationContext, widgetId, launch,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    ))
+                    views.setOnClickPendingIntent(
+                        widgetId,
+                        PendingIntent.getActivity(
+                            applicationContext,
+                            widgetId,
+                            launch,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        )
+                    )
                 }
                 manager.updateAppWidget(widgetId, views)
             }
+
             Result.success()
         } catch (_: Exception) {
             Result.retry()
         }
     }
 
-    private fun renderTeam(v: RemoteViews, settings: JSONObject, tournament: String, rank: Int, points: Double, matches: Int, lastMatch: Int) {
-        v.setTextViewText(R.id.widget_title, settings.optString("teamName", "OG ELITE"))
-        v.setTextViewText(R.id.widget_subtitle, tournament)
-        v.setTextViewText(R.id.widget_rank, if (rank > 0) "#$rank" else "—")
-        v.setTextViewText(R.id.widget_points, format(points))
-        v.setTextViewText(R.id.widget_kills, "TEAM")
-        v.setTextViewText(R.id.widget_matches, if (lastMatch > 0) "M$lastMatch" else "$matches MATCHES")
-        v.setTextViewText(R.id.widget_label_rank, "RANK")
-        v.setTextViewText(R.id.widget_label_points, "POINTS")
-        v.setTextViewText(R.id.widget_label_kills, "TYPE")
-        v.setTextViewText(R.id.widget_label_matches, "LAST")
-        v.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
+    private fun renderTeam(
+        views: RemoteViews,
+        settings: JSONObject,
+        tournament: String,
+        rank: Int,
+        points: Double,
+        matches: Int,
+        lastMatch: Int
+    ) {
+        views.setTextViewText(R.id.widget_title, settings.optString("teamName", "OG ELITE"))
+        views.setTextViewText(R.id.widget_subtitle, tournament)
+        views.setTextViewText(R.id.widget_rank, if (rank > 0) "#$rank" else "—")
+        views.setTextViewText(R.id.widget_points, format(points))
+        views.setTextViewText(R.id.widget_kills, matches.toString())
+        views.setTextViewText(R.id.widget_matches, if (lastMatch > 0) "M$lastMatch" else "—")
+        views.setTextViewText(R.id.widget_label_rank, "RANK")
+        views.setTextViewText(R.id.widget_label_points, "POINTS")
+        views.setTextViewText(R.id.widget_label_kills, "MATCHES")
+        views.setTextViewText(R.id.widget_label_matches, "LAST")
+        views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
     }
 
-    private fun renderPlayer(v: RemoteViews, player: JSONObject?, tournament: String, matches: List<JSONObject>) {
+    private fun renderPlayerPlaceholder(views: RemoteViews, tournament: String) {
+        views.setTextViewText(R.id.widget_title, "SELECT PLAYER")
+        views.setTextViewText(R.id.widget_subtitle, tournament)
+        views.setTextViewText(R.id.widget_rank, "—")
+        views.setTextViewText(R.id.widget_points, "—")
+        views.setTextViewText(R.id.widget_kills, "—")
+        views.setTextViewText(R.id.widget_matches, "SETUP")
+        views.setTextViewText(R.id.widget_label_rank, "KILLS")
+        views.setTextViewText(R.id.widget_label_points, "MATCHES")
+        views.setTextViewText(R.id.widget_label_kills, "AVG")
+        views.setTextViewText(R.id.widget_label_matches, "STATUS")
+        views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
+    }
+
+    private fun renderPlayer(
+        views: RemoteViews,
+        player: JSONObject?,
+        tournament: String,
+        matches: List<JSONObject>
+    ) {
         val name = player?.optString("name", "PLAYER") ?: "PLAYER"
         val id = player?.optString("id", "") ?: ""
         var kills = 0
         var played = 0
-        matches.forEach { m ->
-            val stats = m.optJSONArray("playerStats") ?: return@forEach
+
+        matches.forEach { match ->
+            val stats = match.optJSONArray("playerStats") ?: return@forEach
             for (i in 0 until stats.length()) {
-                val s = stats.getJSONObject(i)
-                if (s.optString("playerId") == id) {
-                    kills += s.optInt("kills", 0)
+                val stat = stats.getJSONObject(i)
+                if (stat.optString("playerId") == id) {
+                    kills += stat.optInt("kills", 0)
                     played++
                 }
             }
         }
-        v.setTextViewText(R.id.widget_title, name)
-        v.setTextViewText(R.id.widget_subtitle, tournament)
-        v.setTextViewText(R.id.widget_rank, "—")
-        v.setTextViewText(R.id.widget_points, "$kills")
-        v.setTextViewText(R.id.widget_kills, "$kills")
-        v.setTextViewText(R.id.widget_matches, "$played")
-        v.setTextViewText(R.id.widget_label_rank, "RANK")
-        v.setTextViewText(R.id.widget_label_points, "KILLS")
-        v.setTextViewText(R.id.widget_label_kills, "KILLS")
-        v.setTextViewText(R.id.widget_label_matches, "MATCHES")
+
+        val avg = if (played > 0) String.format(Locale.US, "%.1f", kills.toDouble() / played) else "0.0"
+
+        views.setTextViewText(R.id.widget_title, name)
+        views.setTextViewText(R.id.widget_subtitle, tournament)
+        views.setTextViewText(R.id.widget_rank, kills.toString())
+        views.setTextViewText(R.id.widget_points, played.toString())
+        views.setTextViewText(R.id.widget_kills, avg)
+        views.setTextViewText(R.id.widget_matches, "LIVE")
+        views.setTextViewText(R.id.widget_label_rank, "KILLS")
+        views.setTextViewText(R.id.widget_label_points, "MATCHES")
+        views.setTextViewText(R.id.widget_label_kills, "AVG")
+        views.setTextViewText(R.id.widget_label_matches, "STATUS")
+
         val imageUrl = player?.optString("imageUrl", "") ?: ""
         val bitmap = downloadBitmap(imageUrl)
-        if (bitmap != null) v.setImageViewBitmap(R.id.widget_image, bitmap)
-        else v.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
+        if (bitmap != null) {
+            views.setImageViewBitmap(R.id.widget_image, bitmap)
+        } else {
+            views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
+        }
     }
 
     private fun get(path: String): String {
-        val c = URL(API + path).openConnection() as HttpURLConnection
-        c.connectTimeout = 8000
-        c.readTimeout = 10000
-        c.requestMethod = "GET"
-        return c.inputStream.bufferedReader().use { it.readText() }.also { c.disconnect() }
+        val connection = URL(API + path).openConnection() as HttpURLConnection
+        connection.connectTimeout = 8000
+        connection.readTimeout = 10000
+        connection.requestMethod = "GET"
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
+        return try {
+            val code = connection.responseCode
+            if (code !in 200..299) throw IllegalStateException("HTTP $code")
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun downloadBitmap(url: String): Bitmap? = try {
@@ -164,17 +225,19 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             return null
         }
         connection.inputStream.use { BitmapFactory.decodeStream(it) }.also { connection.disconnect() }
-    } catch (_: Exception) { null }
+    } catch (_: Exception) {
+        null
+    }
 
     private fun findById(array: JSONArray, id: String?): JSONObject? {
-        if (id == null) return null
+        if (id.isNullOrBlank()) return null
         for (i in 0 until array.length()) {
-            val o = array.getJSONObject(i)
-            if (o.optString("id") == id) return o
+            val obj = array.getJSONObject(i)
+            if (obj.optString("id") == id) return obj
         }
         return null
     }
 
     private fun format(value: Double): String =
-        if (value % 1.0 == 0.0) value.toInt().toString() else String.format("%.1f", value)
+        if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
 }
