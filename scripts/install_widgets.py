@@ -15,10 +15,14 @@ DRAWABLE.mkdir(parents=True, exist_ok=True)
 for name in ["PerformanceWidget.kt", "WidgetRefreshWorker.kt", "WidgetRefreshService.kt", "WidgetConfigActivity.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
-(LAYOUT / "widget_performance.xml").write_text((SRC / "widget_performance.xml").read_text())
-(DRAWABLE / "widget_bg.xml").write_text((SRC / "widget_bg.xml").read_text())
-(XML / "widget_info_team.xml").write_text((SRC / "widget_info_team.xml").read_text())
-(XML / "widget_info_player.xml").write_text((SRC / "widget_info_player.xml").read_text())
+for name in ["widget_team.xml", "widget_player.xml"]:
+    (LAYOUT / name).write_text((SRC / name).read_text())
+
+for name in ["widget_bg.xml", "widget_badge_bg.xml"]:
+    (DRAWABLE / name).write_text((SRC / name).read_text())
+
+for name in ["widget_info_team.xml", "widget_info_player.xml"]:
+    (XML / name).write_text((SRC / name).read_text())
 
 logo = ROOT / "assets/og-elite-icon.png"
 if logo.exists():
@@ -76,7 +80,8 @@ if "com.teamelite.stats.widget.TeamPerformanceWidget" not in m:
     marker = "</application>"
     if marker not in m:
         raise SystemExit("AndroidManifest.xml has no application close tag")
-    m = m.replace(marker, receivers + "\n    " + marker, 1)
+    m = m.replace(marker, receivers + "
+    " + marker, 1)
     manifest.write_text(m)
 
 print("OG ELITE widgets installed into generated Android project")
