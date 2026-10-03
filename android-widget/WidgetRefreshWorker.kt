@@ -10,6 +10,11 @@ import android.widget.RemoteViews
 import androidx.work.CoroutineWorker
 import androidx.work.WorkManager
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.ExistingWorkPolicy
+import androidx.work.BackoffPolicy
+import android.util.Log
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,8 +29,24 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         private const val API = "https://team-elite-stats.vercel.app"
 
         fun enqueue(context: Context, immediate: Boolean = false) {
-            val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
-            WorkManager.getInstance(context).enqueue(request)
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    15,
+                    java.util.concurrent.TimeUnit.SECONDS
+                )
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "og_elite_widget_refresh",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
         }
 
         fun schedulePeriodic(context: Context) {
@@ -35,17 +56,28 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
                 androidx.work.PeriodicWorkRequestBuilder<WidgetRefreshWorker>(
                     15,
                     java.util.concurrent.TimeUnit.MINUTES
-                ).build()
+                )
+                    .setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                    )
+                    .build()
             )
         }
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            Log.d("OG_ELITE_WIDGET", "Starting widget data refresh")
             val tournaments = JSONArray(get("/api/tournaments"))
+            Log.d("OG_ELITE_WIDGET", "Loaded tournaments: ${tournaments.length()}")
             val matches = JSONArray(get("/api/matches"))
+            Log.d("OG_ELITE_WIDGET", "Loaded matches: ${matches.length()}")
             val players = JSONArray(get("/api/players"))
+            Log.d("OG_ELITE_WIDGET", "Loaded players: ${players.length()}")
             val settings = JSONObject(get("/api/settings"))
+            Log.d("OG_ELITE_WIDGET", "Loaded settings")
 
             var latestTournamentId: String? = null
             var latestTimestamp = Long.MIN_VALUE
@@ -131,8 +163,10 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
                 manager.updateAppWidget(widgetId, views)
             }
 
+            Log.d("OG_ELITE_WIDGET", "Widget data refresh completed")
             Result.success()
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            Log.e("OG_ELITE_WIDGET", "Widget refresh failed", error)
             Result.retry()
         }
     }
@@ -227,8 +261,8 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
 
     private fun get(path: String): String {
         val connection = URL(API + path).openConnection() as HttpURLConnection
-        connection.connectTimeout = 8000
-        connection.readTimeout = 10000
+        connection.connectTimeout = 12000
+        connection.readTimeout = 15000
         connection.requestMethod = "GET"
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
