@@ -82,18 +82,27 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             allIds.forEach { widgetId ->
                 val isPlayerWidget = playerIds.contains(widgetId)
                 val playerId = prefs.getString("player_$widgetId", null)
-                val layout = if (isPlayerWidget) R.layout.widget_player else R.layout.widget_team
+                val options = manager.getAppWidgetOptions(widgetId)
+                val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+                val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 150)
+                val isStrip = minHeight <= 100 || minWidth >= minHeight * 3
+                val layout = when {
+                    isPlayerWidget && isStrip -> R.layout.widget_player_strip
+                    isPlayerWidget -> R.layout.widget_player
+                    isStrip -> R.layout.widget_team_strip
+                    else -> R.layout.widget_team
+                }
                 val views = RemoteViews(applicationContext.packageName, layout)
 
                 if (isPlayerWidget) {
                     if (playerId.isNullOrBlank()) {
-                        renderPlayerPlaceholder(views, tournamentName)
+                        renderPlayerPlaceholder(views, tournamentName, isStrip)
                     } else {
                         val player = findById(players, playerId)
-                        renderPlayer(views, player, tournamentName, tournamentMatches)
+                        renderPlayer(views, player, tournamentName, tournamentMatches, isStrip)
                     }
                 } else {
-                    renderTeam(views, settings, tournamentName, teamRank, teamPoints, tournamentMatches.size, matchNumber)
+                    renderTeam(views, settings, tournamentName, teamRank, teamPoints, tournamentMatches.size, matchNumber, isStrip)
                 }
 
                 val launch = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
@@ -124,32 +133,37 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         rank: Int,
         points: Double,
         matches: Int,
-        lastMatch: Int
+        lastMatch: Int,
+        strip: Boolean
     ) {
         views.setTextViewText(R.id.widget_title, settings.optString("teamName", "OG ELITE"))
         views.setTextViewText(R.id.widget_subtitle, tournament)
         views.setTextViewText(R.id.widget_rank, if (rank > 0) "#$rank" else "—")
         views.setTextViewText(R.id.widget_points, format(points))
-        views.setTextViewText(R.id.widget_kills, matches.toString())
-        views.setTextViewText(R.id.widget_matches, if (lastMatch > 0) "M$lastMatch" else "—")
-        views.setTextViewText(R.id.widget_label_rank, "RANK")
-        views.setTextViewText(R.id.widget_label_points, "POINTS")
-        views.setTextViewText(R.id.widget_label_kills, "MATCHES")
-        views.setTextViewText(R.id.widget_label_matches, "LAST")
+        if (!strip) {
+            views.setTextViewText(R.id.widget_kills, matches.toString())
+            views.setTextViewText(R.id.widget_matches, if (lastMatch > 0) "M$lastMatch" else "—")
+            views.setTextViewText(R.id.widget_label_rank, "RANK")
+            views.setTextViewText(R.id.widget_label_points, "POINTS")
+            views.setTextViewText(R.id.widget_label_kills, "MATCHES")
+            views.setTextViewText(R.id.widget_label_matches, "LAST")
+        }
         views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
     }
 
-    private fun renderPlayerPlaceholder(views: RemoteViews, tournament: String) {
+    private fun renderPlayerPlaceholder(views: RemoteViews, tournament: String, strip: Boolean) {
         views.setTextViewText(R.id.widget_title, "SELECT PLAYER")
         views.setTextViewText(R.id.widget_subtitle, tournament)
         views.setTextViewText(R.id.widget_rank, "—")
         views.setTextViewText(R.id.widget_points, "—")
-        views.setTextViewText(R.id.widget_kills, "—")
-        views.setTextViewText(R.id.widget_matches, "SETUP")
-        views.setTextViewText(R.id.widget_label_rank, "KILLS")
-        views.setTextViewText(R.id.widget_label_points, "MATCHES")
-        views.setTextViewText(R.id.widget_label_kills, "AVG")
-        views.setTextViewText(R.id.widget_label_matches, "STATUS")
+        if (!strip) {
+            views.setTextViewText(R.id.widget_kills, "—")
+            views.setTextViewText(R.id.widget_matches, "SETUP")
+            views.setTextViewText(R.id.widget_label_rank, "KILLS")
+            views.setTextViewText(R.id.widget_label_points, "MATCHES")
+            views.setTextViewText(R.id.widget_label_kills, "AVG")
+            views.setTextViewText(R.id.widget_label_matches, "STATUS")
+        }
         views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
     }
 
@@ -157,7 +171,8 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         views: RemoteViews,
         player: JSONObject?,
         tournament: String,
-        matches: List<JSONObject>
+        matches: List<JSONObject>,
+        strip: Boolean
     ) {
         val name = player?.optString("name", "PLAYER") ?: "PLAYER"
         val id = player?.optString("id", "") ?: ""
@@ -181,12 +196,14 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         views.setTextViewText(R.id.widget_subtitle, tournament)
         views.setTextViewText(R.id.widget_rank, kills.toString())
         views.setTextViewText(R.id.widget_points, played.toString())
-        views.setTextViewText(R.id.widget_kills, avg)
-        views.setTextViewText(R.id.widget_matches, "LIVE")
-        views.setTextViewText(R.id.widget_label_rank, "KILLS")
-        views.setTextViewText(R.id.widget_label_points, "MATCHES")
-        views.setTextViewText(R.id.widget_label_kills, "AVG")
-        views.setTextViewText(R.id.widget_label_matches, "STATUS")
+        if (!strip) {
+            views.setTextViewText(R.id.widget_kills, avg)
+            views.setTextViewText(R.id.widget_matches, "LIVE")
+            views.setTextViewText(R.id.widget_label_rank, "KILLS")
+            views.setTextViewText(R.id.widget_label_points, "MATCHES")
+            views.setTextViewText(R.id.widget_label_kills, "AVG")
+            views.setTextViewText(R.id.widget_label_matches, "STATUS")
+        }
 
         val imageUrl = player?.optString("imageUrl", "") ?: ""
         val bitmap = downloadBitmap(imageUrl)
