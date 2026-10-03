@@ -3,9 +3,13 @@ package com.teamelite.stats.widget
 import android.app.Activity
 import android.app.AppWidgetManager
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.view.Gravity
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
 import org.json.JSONArray
 import java.net.HttpURLConnection
@@ -18,7 +22,7 @@ class WidgetConfigActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        widgetId = intent?.extras?.getInt(
+        widgetId = intent?.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
@@ -30,9 +34,30 @@ class WidgetConfigActivity : Activity() {
 
         setResult(RESULT_CANCELED)
 
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(28, 24, 28, 18)
+            setBackgroundColor(Color.rgb(16, 18, 24))
+        }
+
+        val title = TextView(this).apply {
+            text = "OG ELITE • SELECT PLAYER"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 16)
+        }
+        root.addView(title, LinearLayout.LayoutParams(-1, -2))
+
         val list = ListView(this)
-        list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayOf("Loading players…"))
-        setContentView(list)
+        root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(root)
+
+        list.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_list_item_1,
+            arrayOf("Loading players…")
+        )
 
         thread(name = "og-elite-widget-player-loader") {
             try {
@@ -41,14 +66,16 @@ class WidgetConfigActivity : Activity() {
                 connection.connectTimeout = 8000
                 connection.readTimeout = 10000
                 connection.requestMethod = "GET"
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
 
-                val code = connection.responseCode
-                if (code !in 200..299) {
-                    throw IllegalStateException("Players API returned HTTP $code")
+                val json = try {
+                    val code = connection.responseCode
+                    if (code !in 200..299) throw IllegalStateException("HTTP $code")
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    connection.disconnect()
                 }
-
-                val json = connection.inputStream.bufferedReader().use { it.readText() }
-                connection.disconnect()
 
                 val players = JSONArray(json)
                 val names = Array(players.length()) { i ->
@@ -74,22 +101,24 @@ class WidgetConfigActivity : Activity() {
 
                             WidgetRefreshWorker.enqueue(this, immediate = true)
 
-                            val result = Intent().putExtra(
-                                AppWidgetManager.EXTRA_APPWIDGET_ID,
-                                widgetId
+                            setResult(
+                                RESULT_OK,
+                                Intent().putExtra(
+                                    AppWidgetManager.EXTRA_APPWIDGET_ID,
+                                    widgetId
+                                )
                             )
-                            setResult(RESULT_OK, result)
                             finish()
-                        } catch (_: Exception) {
+                        } catch (error: Exception) {
                             Toast.makeText(
                                 this,
-                                "Couldn't configure this widget. Try again.",
+                                error.message ?: "Couldn't configure this widget.",
                                 Toast.LENGTH_LONG
                             ).show()
                         }
                     }
                 }
-            } catch (_: Exception) {
+            } catch (error: Exception) {
                 runOnUiThread {
                     if (isFinishing || isDestroyed) return@runOnUiThread
                     Toast.makeText(
@@ -97,7 +126,6 @@ class WidgetConfigActivity : Activity() {
                         "Couldn't load players. Check your internet connection and try again.",
                         Toast.LENGTH_LONG
                     ).show()
-                    finish()
                 }
             }
         }
