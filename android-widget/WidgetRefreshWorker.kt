@@ -224,9 +224,31 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             connection.disconnect()
             return null
         }
-        connection.inputStream.use { BitmapFactory.decodeStream(it) }.also { connection.disconnect() }
+
+        connection.inputStream.use { stream ->
+            val bytes = stream.readBytes()
+            if (bytes.isEmpty()) return@use null
+
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@use null
+
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = calculateSampleSize(bounds.outWidth, bounds.outHeight, 512, 512)
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+        }.also { connection.disconnect() }
     } catch (_: Exception) {
         null
+    }
+
+    private fun calculateSampleSize(width: Int, height: Int, maxWidth: Int, maxHeight: Int): Int {
+        var sample = 1
+        while (width / (sample * 2) >= maxWidth && height / (sample * 2) >= maxHeight) {
+            sample *= 2
+        }
+        return sample
     }
 
     private fun findById(array: JSONArray, id: String?): JSONObject? {
