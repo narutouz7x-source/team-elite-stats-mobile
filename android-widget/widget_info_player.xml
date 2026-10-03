@@ -1,8 +1,9 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
-    android:minHeight="110dp"
+    android:minHeight="150dp"
     android:updatePeriodMillis="0"
-    android:initialLayout="@layout/widget_performance"
+    android:initialLayout="@layout/widget_player"
+    android:previewLayout="@layout/widget_player"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:configure="com.teamelite.stats.widget.WidgetConfigActivity"/>
