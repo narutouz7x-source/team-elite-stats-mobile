@@ -8,41 +8,33 @@ import android.widget.RemoteViews
 private fun showSafePlaceholder(
     context: Context,
     manager: AppWidgetManager,
-    ids: IntArray,
-    layout: Int
+    ids: IntArray
 ) {
     ids.forEach { id ->
         try {
-            val views = RemoteViews(context.packageName, layout)
+            val views = RemoteViews(context.packageName, R.layout.widget_initial)
             views.setTextViewText(R.id.widget_title, "OG ELITE")
             views.setTextViewText(R.id.widget_subtitle, "LOADING STATS…")
-            views.setTextViewText(R.id.widget_rank, "—")
-            views.setTextViewText(R.id.widget_points, "—")
-            views.setImageViewResource(R.id.widget_image, R.drawable.og_elite_widget_logo)
             manager.updateAppWidget(id, views)
-        } catch (_: Exception) {
-            // Never let a widget refresh failure abort widget installation.
+        } catch (_: Throwable) {
         }
     }
 }
 
 private fun scheduleWidgetRefresh(context: Context) {
-    try {
-        WidgetRefreshWorker.enqueue(context, immediate = true)
-    } catch (_: Exception) {
-        // WorkManager may not be ready during launcher installation.
-    }
+    try { WidgetRefreshWorker.enqueue(context, immediate = true) } catch (_: Throwable) {}
+    try { WidgetRefreshWorker.schedulePeriodic(context) } catch (_: Throwable) {}
+}
 
+private fun resetToSafeLayout(context: Context, manager: AppWidgetManager, id: Int) {
     try {
-        WidgetRefreshWorker.schedulePeriodic(context)
-    } catch (_: Exception) {
-        // Periodic refresh is best-effort; the widget itself must remain addable.
-    }
+        manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_initial))
+    } catch (_: Throwable) {}
 }
 
 class TeamPerformanceWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        showSafePlaceholder(context, manager, ids, R.layout.widget_team)
+        showSafePlaceholder(context, manager, ids)
         scheduleWidgetRefresh(context)
     }
 
@@ -52,17 +44,14 @@ class TeamPerformanceWidget : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: android.os.Bundle
     ) {
-        appWidgetManager.updateAppWidget(
-            appWidgetId,
-            RemoteViews(context.packageName, R.layout.widget_team)
-        )
+        resetToSafeLayout(context, appWidgetManager, appWidgetId)
         scheduleWidgetRefresh(context)
     }
 }
 
 class PlayerPerformanceWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        showSafePlaceholder(context, manager, ids, R.layout.widget_player)
+        showSafePlaceholder(context, manager, ids)
         scheduleWidgetRefresh(context)
     }
 
@@ -72,10 +61,7 @@ class PlayerPerformanceWidget : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: android.os.Bundle
     ) {
-        appWidgetManager.updateAppWidget(
-            appWidgetId,
-            RemoteViews(context.packageName, R.layout.widget_player)
-        )
+        resetToSafeLayout(context, appWidgetManager, appWidgetId)
         scheduleWidgetRefresh(context)
     }
 
