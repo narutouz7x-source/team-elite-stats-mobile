@@ -80,8 +80,7 @@ if "com.teamelite.stats.widget.TeamPerformanceWidget" not in m:
     marker = "</application>"
     if marker not in m:
         raise SystemExit("AndroidManifest.xml has no application close tag")
-    m = m.replace(marker, receivers + "
-    " + marker, 1)
+    m = m.replace(marker, receivers + "\n    " + marker, 1)
     manifest.write_text(m)
 
 print("OG ELITE widgets installed into generated Android project")
