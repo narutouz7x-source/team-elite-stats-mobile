@@ -21,18 +21,25 @@ const mediaUrl = (value?: string) => {
 
 const clipImageUrl = (clip: Clip) => {
   const provided = mediaUrl(clip.thumbnailUrl || '');
-  if (provided) return provided;
+  if (provided) {
+    const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+    return apiBase + '/api/clips/thumbnail?url=' + encodeURIComponent(provided);
+  }
 
   try {
     const url = new URL(clip.url);
     if (url.hostname.includes('youtube.com') || url.hostname === 'youtu.be' || url.hostname.includes('youtube-nocookie.com')) {
       const videoId = url.hostname === 'youtu.be'
         ? url.pathname.slice(1).split('/')[0]
-        : url.searchParams.get('v') || url.pathname.match(/(?:shorts|embed)\/([^/?]+)/)?.[1];
-      if (videoId) return 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg';
+        : url.searchParams.get('v') || url.pathname.match(/(?:shorts|embed|live)\/([^/?]+)/)?.[1];
+      if (videoId) {
+        const thumbnail = 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg';
+        const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+        return apiBase + '/api/clips/thumbnail?url=' + encodeURIComponent(thumbnail);
+      }
     }
   } catch {
-    // Keep the normal platform fallback when the URL is malformed.
+    // Keep the fallback state when the clip URL is malformed.
   }
   return '';
 };
