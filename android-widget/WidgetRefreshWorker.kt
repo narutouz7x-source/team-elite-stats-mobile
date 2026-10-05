@@ -29,12 +29,9 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         private const val API = "https://team-elite-stats.vercel.app"
 
         fun enqueue(context: Context, immediate: Boolean = false) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
+            // The immediate refresh must be runnable as soon as a widget is added.
+            // The worker handles connectivity/API failures itself and retries.
             val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
-                .setConstraints(constraints)
                 .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     15,
