@@ -21,14 +21,16 @@ for path in LAYOUT.glob("widget_*.xml"):
 for path in XML.glob("widget_info_*.xml"):
     path.unlink()
 
-for name in ["OgEliteApplication.kt", "PerformanceWidget.kt", "WidgetRefreshWorker.kt"]:
+for name in ["OgEliteApplication.kt", "PerformanceWidget.kt", "WidgetRefreshWorker.kt", "PlayerWidgetConfigActivity.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
-for name in ["widget_loading.xml", "widget_stats.xml", "widget_strip.xml"]:
+for name in ["widget_loading.xml", "widget_stats.xml", "widget_strip.xml", "widget_player.xml"]:
     (LAYOUT / name).write_text((SRC / name).read_text())
 
 for name in ["widget_info_team.xml", "widget_info_player.xml"]:
     (XML / name).write_text((SRC / name).read_text())
+
+(DRAWABLE / "widget_glass.xml").write_text((SRC / "widget_glass.xml").read_text())
 
 logo = ROOT / "assets/og-elite-icon.png"
 if logo.exists():
@@ -86,6 +88,13 @@ receivers = '''
                 android:resource="@xml/widget_info_player" />
         </receiver>
 '''
+if "com.teamelite.stats.widget.PlayerWidgetConfigActivity" not in m:
+    m = m.replace(
+        "</application>",
+        '        <activity android:name="com.teamelite.stats.widget.PlayerWidgetConfigActivity" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar" />\n    </application>',
+        1
+    )
+
 if "com.teamelite.stats.widget.TeamPerformanceWidget" not in m:
     marker = "</application>"
     if marker not in m:
