@@ -92,9 +92,21 @@ if "com.teamelite.stats.widget.TeamPerformanceWidget" not in m:
         raise SystemExit("AndroidManifest.xml has no application close tag")
     m = m.replace(marker, receivers + "\n    " + marker, 1)
 
-# WorkManager uses OgEliteApplication as its Configuration.Provider.
-# Remove the default AndroidX Startup initializer from the final manifest.
-m = m.replace('    </application>', '        <provider android:name="androidx.startup.InitializationProvider" android:authorities="\${applicationId}.androidx-startup" android:exported="false" tools:node="remove" />\n    </application>', 1)
-m = m.replace('xmlns:android="http://schemas.android.com/apk/res/android"', 'xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"', 1)
+# WorkManager uses OgEliteApplication as Configuration.Provider.
+# Remove the default AndroidX Startup initializer from the merged manifest.
+m = m.replace('        <provider android:name="androidx.startup.InitializationProvider" android:authorities="\\${applicationId}.androidx-startup" android:exported="false" tools:node="remove" />\\n', '')
+m = m.replace('        <provider android:name="androidx.startup.InitializationProvider" android:authorities="${applicationId}.androidx-startup" android:exported="false" tools:node="remove" />\\n', '')
+import re
+m = re.sub(r'\\s*<provider\\s+android:name="androidx\\.startup\\.InitializationProvider"[^>]*>\\s*<meta-data\\s+android:name="androidx\\.work\\.WorkManagerInitializer"[^>]*/>\\s*</provider>', '', m)
+if 'xmlns:tools="http://schemas.android.com/tools"' not in m:
+    m = m.replace('xmlns:android="http://schemas.android.com/apk/res/android"', 'xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"', 1)
+removal = '''        <provider
+    android:name="androidx.startup.InitializationProvider"
+    android:authorities="${applicationId}.androidx-startup"
+    android:exported="false"
+    tools:node="remove" />
+'''
+if 'tools:node="remove"' not in m:
+    m = m.replace("    </application>", removal + "    </application>", 1)
 manifest.write_text(m)
 print("Installed clean OG ELITE widget implementation")
