@@ -3,23 +3,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ANDROID = ROOT / "android"
 SRC = ROOT / "android-widget"
+
 JAVA = ANDROID / "app/src/main/java/com/teamelite/stats/widget"
 LAYOUT = ANDROID / "app/src/main/res/layout"
 XML = ANDROID / "app/src/main/res/xml"
 DRAWABLE = ANDROID / "app/src/main/res/drawable"
-JAVA.mkdir(parents=True, exist_ok=True)
-LAYOUT.mkdir(parents=True, exist_ok=True)
-XML.mkdir(parents=True, exist_ok=True)
-DRAWABLE.mkdir(parents=True, exist_ok=True)
 
-for name in ["PerformanceWidget.kt", "WidgetRefreshWorker.kt", "WidgetRefreshService.kt", "WidgetConfigActivity.kt", "OgEliteApplication.kt"]:
+for folder in (JAVA, LAYOUT, XML, DRAWABLE):
+    folder.mkdir(parents=True, exist_ok=True)
+
+# Clean widget sources from the generated Android project before installing
+# the current implementation.
+for path in JAVA.glob("*.kt"):
+    path.unlink()
+for path in LAYOUT.glob("widget_*.xml"):
+    path.unlink()
+for path in XML.glob("widget_info_*.xml"):
+    path.unlink()
+
+for name in ["OgEliteApplication.kt", "PerformanceWidget.kt", "WidgetRefreshWorker.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
-for name in ["widget_initial.xml", "widget_team.xml", "widget_player.xml", "widget_team_strip.xml", "widget_player_strip.xml"]:
+for name in ["widget_loading.xml", "widget_stats.xml", "widget_strip.xml"]:
     (LAYOUT / name).write_text((SRC / name).read_text())
-
-for name in ["widget_bg.xml", "widget_badge_bg.xml"]:
-    (DRAWABLE / name).write_text((SRC / name).read_text())
 
 for name in ["widget_info_team.xml", "widget_info_player.xml"]:
     (XML / name).write_text((SRC / name).read_text())
@@ -40,23 +46,22 @@ if "androidx.work:work-runtime-ktx" not in g:
 manifest = ANDROID / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text()
 
-# Explicitly provide WorkManager configuration. This avoids relying on
-# auto-initialization inside the generated Capacitor application.
-if "android:name=\"com.teamelite.stats.widget.OgEliteApplication\"" not in m:
-    m = m.replace("<application ", "<application android:name=\"com.teamelite.stats.widget.OgEliteApplication\" ", 1)
+if 'android:name="com.teamelite.stats.widget.OgEliteApplication"' not in m:
+    m = m.replace(
+        "<application ",
+        '<application android:name="com.teamelite.stats.widget.OgEliteApplication" ',
+        1
+    )
 
-# Keep network permissions explicit because the Android project is generated
-# from scratch during every CI build.
 permission_block = '''    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 '''
 if "android.permission.INTERNET" not in m:
-    manifest_tag = "<manifest "
-    manifest_start = m.find(manifest_tag)
-    manifest_end = m.find(">", manifest_start)
-    if manifest_start == -1 or manifest_end == -1:
+    start = m.find("<manifest ")
+    end = m.find(">", start)
+    if start == -1 or end == -1:
         raise SystemExit("AndroidManifest.xml has no manifest tag")
-    m = m[:manifest_end + 1] + permission_block + m[manifest_end + 1:]
+    m = m[:end + 1] + permission_block + m[end + 1:]
 
 receivers = '''
         <receiver
@@ -80,26 +85,12 @@ receivers = '''
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_player" />
         </receiver>
-
-        <activity
-            android:name="com.teamelite.stats.widget.WidgetConfigActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.Dialog">
-        </activity>
-
-        <service
-            android:name="com.teamelite.stats.widget.WidgetRefreshService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
 '''
 if "com.teamelite.stats.widget.TeamPerformanceWidget" not in m:
     marker = "</application>"
     if marker not in m:
         raise SystemExit("AndroidManifest.xml has no application close tag")
     m = m.replace(marker, receivers + "\n    " + marker, 1)
-    manifest.write_text(m)
 
-print("OG ELITE widgets installed into generated Android project")
+manifest.write_text(m)
+print("Installed clean OG ELITE widget implementation")
