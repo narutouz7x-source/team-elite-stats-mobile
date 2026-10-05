@@ -167,8 +167,25 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
             Log.d("OG_ELITE_WIDGET", "Widget data refresh completed")
             Result.success()
         } catch (error: Exception) {
-            Log.e("OG_ELITE_WIDGET", "Widget refresh failed", error)
+            Log.e("OG_ELITE_WIDGET", "Widget refresh failed: ${error.message}", error)
+            updateErrorState(applicationContext, error.message ?: "Unknown error")
             Result.retry()
+        }
+    }
+
+    private fun updateErrorState(context: Context, message: String) {
+        val manager = AppWidgetManager.getInstance(context)
+        val ids = manager.getAppWidgetIds(ComponentName(context, TeamPerformanceWidget::class.java)) +
+            manager.getAppWidgetIds(ComponentName(context, PlayerPerformanceWidget::class.java))
+        val short = message.replace("\n", " ").take(90)
+        ids.forEach { id ->
+            try {
+                val views = RemoteViews(context.packageName, R.layout.widget_initial)
+                views.setTextViewText(R.id.widget_title, "OG ELITE")
+                views.setTextViewText(R.id.widget_subtitle, "SYNC ERROR: $short")
+                manager.updateAppWidget(id, views)
+            } catch (_: Throwable) {
+            }
         }
     }
 
@@ -269,8 +286,13 @@ class WidgetRefreshWorker(appContext: Context, params: WorkerParameters) : Corou
         connection.setRequestProperty("User-Agent", "OG-ELITE-STATS-Android-Widget")
         return try {
             val code = connection.responseCode
-            if (code !in 200..299) throw IllegalStateException("HTTP $code")
-            connection.inputStream.bufferedReader().use { it.readText() }
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader()?.use { it.readText() } ?: ""
+            if (code !in 200..299) {
+                val detail = body.replace("\n", " ").trim().take(120)
+                throw IllegalStateException("HTTP $code${if (detail.isNotBlank()) ": $detail" else ""}")
+            }
+            body
         } finally {
             connection.disconnect()
         }
