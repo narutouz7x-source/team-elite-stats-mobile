@@ -12,7 +12,7 @@ LAYOUT.mkdir(parents=True, exist_ok=True)
 XML.mkdir(parents=True, exist_ok=True)
 DRAWABLE.mkdir(parents=True, exist_ok=True)
 
-for name in ["PerformanceWidget.kt", "WidgetRefreshWorker.kt", "WidgetRefreshService.kt", "WidgetConfigActivity.kt"]:
+for name in ["PerformanceWidget.kt", "WidgetRefreshWorker.kt", "WidgetRefreshService.kt", "WidgetConfigActivity.kt", "OgEliteApplication.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
 for name in ["widget_initial.xml", "widget_team.xml", "widget_player.xml", "widget_team_strip.xml", "widget_player_strip.xml"]:
@@ -39,6 +39,11 @@ if "androidx.work:work-runtime-ktx" not in g:
 
 manifest = ANDROID / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text()
+
+# Explicitly provide WorkManager configuration. This avoids relying on
+# auto-initialization inside the generated Capacitor application.
+if "android:name=\"com.teamelite.stats.widget.OgEliteApplication\"" not in m:
+    m = m.replace("<application ", "<application android:name=\"com.teamelite.stats.widget.OgEliteApplication\" ", 1)
 
 # Keep network permissions explicit because the Android project is generated
 # from scratch during every CI build.
