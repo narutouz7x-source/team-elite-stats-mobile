@@ -1,9 +1,0 @@
-<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="110dp" android:minHeight="70dp"
-    android:minResizeWidth="70dp" android:minResizeHeight="70dp"
-    android:maxResizeWidth="600dp" android:maxResizeHeight="400dp"
-    android:updatePeriodMillis="0"
-    android:initialLayout="@layout/widget_initial"
-    android:previewImage="@drawable/og_elite_widget_logo"
-    android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen" />
