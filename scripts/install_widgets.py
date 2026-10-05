@@ -39,6 +39,20 @@ if "androidx.work:work-runtime-ktx" not in g:
 
 manifest = ANDROID / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text()
+
+# Keep network permissions explicit because the Android project is generated
+# from scratch during every CI build.
+permission_block = '''    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+'''
+if "android.permission.INTERNET" not in m:
+    manifest_tag = "<manifest "
+    manifest_start = m.find(manifest_tag)
+    manifest_end = m.find(">", manifest_start)
+    if manifest_start == -1 or manifest_end == -1:
+        raise SystemExit("AndroidManifest.xml has no manifest tag")
+    m = m[:manifest_end + 1] + permission_block + m[manifest_end + 1:]
+
 receivers = '''
         <receiver
             android:name="com.teamelite.stats.widget.TeamPerformanceWidget"
