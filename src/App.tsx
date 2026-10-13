@@ -4,6 +4,7 @@ import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
 import { initializeNativeNotifications } from './nativeNotifications';
+import { hideHomeBanner, showHomeBanner } from './nativeAds';
 import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
@@ -109,6 +110,15 @@ export function App() {
       if (diagnostic?.error) console.warn('[FCM diagnostic] app status:', diagnostic);
     });
   }, []);
+
+  useEffect(() => {
+    if (tab === 'home') {
+      void showHomeBanner();
+    } else {
+      void hideHomeBanner();
+    }
+    return () => { void hideHomeBanner(); };
+  }, [tab]);
 
   useEffect(() => {
     let cancelled = false;
