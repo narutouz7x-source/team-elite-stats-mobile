@@ -26,8 +26,27 @@ jobs:
       - run: npm run build
         env:
           VITE_API_URL: https://team-elite-stats.vercel.app
+          VITE_ADMOB_LIVE_ADS: "false"
 
       - run: npx cap add android
+
+      # Use the production AdMob app ID while the test build requests Google demo ads.
+      - name: Configure AdMob app ID
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          app_id = 'ca-app-pub-5805327525053497~2675124514'
+          if 'com.google.android.gms.ads.APPLICATION_ID' not in text:
+              metadata = f'\\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="{app_id}" />'
+              text, count = re.subn(r'(<application\\b[^>]*>)', r'\\1' + metadata, text, count=1)
+              if count != 1:
+                  raise SystemExit('Could not find <application> in AndroidManifest.xml')
+              manifest.write_text(text)
+          PY
 
       # Give the testing build its own Android application ID so it can be
       # installed alongside the public OG ELITE STATS app.
