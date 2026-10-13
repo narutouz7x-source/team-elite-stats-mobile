@@ -41,8 +41,8 @@ jobs:
           text = manifest.read_text()
           app_id = 'ca-app-pub-5805327525053497~2675124514'
           if 'com.google.android.gms.ads.APPLICATION_ID' not in text:
-              metadata = f'\\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="{app_id}" />'
-              text, count = re.subn(r'(<application\\b[^>]*>)', r'\\1' + metadata, text, count=1)
+              metadata = f'\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="{app_id}" />'
+              text, count = re.subn(r'(<application\b[^>]*>)', r'\1' + metadata, text, count=1)
               if count != 1:
                   raise SystemExit('Could not find <application> in AndroidManifest.xml')
               manifest.write_text(text)
