@@ -8,11 +8,16 @@ import {
 
 const APP_BANNER_AD_UNIT_ID = 'ca-app-pub-5805327525053497/6015603724';
 const GOOGLE_TEST_BANNER_AD_UNIT_ID = 'ca-app-pub-3940256099942544/9214589741';
+const APP_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-5805327525053497/2893213990';
+const GOOGLE_TEST_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-3940256099942544/1033173712';
 
 let initialized = false;
 let consentAllowsAds = false;
 let preparingAds: Promise<boolean> | null = null;
 let showingBanner: Promise<void> | null = null;
+let interstitialPrepared = false;
+let preparingInterstitial: Promise<boolean> | null = null;
+let interstitialShowing = false;
 
 async function prepareAdMob(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) {
@@ -129,5 +134,62 @@ export async function hideHomeBanner(): Promise<void> {
     console.info('[AdMob] Home banner hidden.');
   } catch (error) {
     console.warn('[AdMob] Home banner could not be hidden:', error);
+  }
+}
+
+
+/**
+ * Preload an interstitial at a suitable point before it may be shown.
+ * Test builds always use Google's official test unit. Live ads require the
+ * existing explicit live-ads flag and a positive consent result.
+ */
+export async function prepareHomeInterstitial(): Promise<boolean> {
+  if (!(await prepareAdMob())) return false;
+  if (interstitialPrepared) return true;
+  if (preparingInterstitial) return preparingInterstitial;
+
+  preparingInterstitial = (async () => {
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+    const adId = useLiveAds ? APP_INTERSTITIAL_AD_UNIT_ID : GOOGLE_TEST_INTERSTITIAL_AD_UNIT_ID;
+    try {
+      console.info('[AdMob] Preparing interstitial:', {
+        mode: useLiveAds ? 'live' : 'Google test',
+        adId
+      });
+      await AdMob.prepareInterstitial({ adId, isTesting: !useLiveAds });
+      interstitialPrepared = true;
+      console.info('[AdMob] Interstitial prepared.');
+      return true;
+    } catch (error) {
+      interstitialPrepared = false;
+      console.error('[AdMob] Interstitial preparation failed:', error);
+      return false;
+    } finally {
+      preparingInterstitial = null;
+    }
+  })();
+
+  return preparingInterstitial;
+}
+
+/**
+ * Show only from a deliberate, natural transition chosen by the app.
+ * This function does not automatically interrupt app startup or gameplay.
+ */
+export async function showHomeInterstitial(): Promise<boolean> {
+  if (interstitialShowing) return false;
+  if (!interstitialPrepared && !(await prepareHomeInterstitial())) return false;
+  try {
+    interstitialShowing = true;
+    await AdMob.showInterstitial();
+    console.info('[AdMob] Interstitial show requested.');
+    interstitialPrepared = false;
+    return true;
+  } catch (error) {
+    console.error('[AdMob] Interstitial failed to show:', error);
+    interstitialPrepared = false;
+    return false;
+  } finally {
+    interstitialShowing = false;
   }
 }
