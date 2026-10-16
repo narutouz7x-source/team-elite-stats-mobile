@@ -214,3 +214,6 @@ button:focus-visible{outline-color:#ff6a00}
 .clip-modal-close{width:34px;height:34px;border-radius:10px!important;background:#111411!important;border:1px solid rgba(255,255,255,.08)!important;color:#aeb6b0!important;display:grid;place-items:center;font-size:20px!important}
 .clip-message{padding:10px 12px;border-radius:9px;background:rgba(255,122,0,.07);border:1px solid rgba(255,122,0,.14);color:#ffb15c!important}
 @media(max-width:620px){.clip-submit-modal form{padding:20px;border-radius:18px}.clip-submit-head h2{font-size:19px}}
+
+/* Keep the fixed navigation clear of the native AdMob banner on Home. */
+.app-shell.home-banner-visible .bottom-nav{bottom:82px}
