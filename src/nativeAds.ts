@@ -193,3 +193,67 @@ export async function showHomeInterstitial(): Promise<boolean> {
     interstitialShowing = false;
   }
 }
+
+
+const APP_REWARDED_AD_UNIT_ID = 'ca-app-pub-5805327525053497/4600213185';
+const GOOGLE_TEST_REWARDED_AD_UNIT_ID = 'ca-app-pub-3940256099942544/5224354917';
+
+let rewardedPrepared = false;
+let preparingRewarded: Promise<boolean> | null = null;
+let rewardedShowing = false;
+
+/**
+ * Prepare a rewarded ad for explicit testing only.
+ * Test builds use Google's official demo unit and do not grant an in-app reward.
+ */
+export async function prepareRewardedTestAd(): Promise<boolean> {
+  if (!(await prepareAdMob())) return false;
+  if (rewardedPrepared) return true;
+  if (preparingRewarded) return preparingRewarded;
+
+  preparingRewarded = (async () => {
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+    const adId = useLiveAds ? APP_REWARDED_AD_UNIT_ID : GOOGLE_TEST_REWARDED_AD_UNIT_ID;
+    try {
+      console.info('[AdMob] Preparing rewarded ad:', {
+        mode: useLiveAds ? 'live' : 'Google test',
+        adId
+      });
+      await AdMob.prepareRewardVideoAd({ adId, isTesting: !useLiveAds });
+      rewardedPrepared = true;
+      console.info('[AdMob] Rewarded ad prepared.');
+      return true;
+    } catch (error) {
+      rewardedPrepared = false;
+      console.error('[AdMob] Rewarded ad preparation failed:', error);
+      return false;
+    } finally {
+      preparingRewarded = null;
+    }
+  })();
+
+  return preparingRewarded;
+}
+
+/**
+ * Show the rewarded test ad only after an explicit user action.
+ * This test helper intentionally does not grant any app-side reward.
+ */
+export async function showRewardedTestAd(): Promise<boolean> {
+  if (rewardedShowing) return false;
+  if (!rewardedPrepared && !(await prepareRewardedTestAd())) return false;
+
+  try {
+    rewardedShowing = true;
+    await AdMob.showRewardVideoAd();
+    console.info('[AdMob] Rewarded ad show requested. No app reward is granted in test mode.');
+    rewardedPrepared = false;
+    return true;
+  } catch (error) {
+    console.error('[AdMob] Rewarded ad failed to show:', error);
+    rewardedPrepared = false;
+    return false;
+  } finally {
+    rewardedShowing = false;
+  }
+}
