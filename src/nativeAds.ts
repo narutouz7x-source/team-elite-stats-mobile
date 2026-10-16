@@ -24,13 +24,16 @@ async function prepareAdMob(): Promise<boolean> {
   if (preparingAds) return preparingAds;
 
   preparingAds = (async () => {
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+
     try {
       console.info('[AdMob] Requesting consent information.');
       let consent = await AdMob.requestConsentInfo();
       console.info('[AdMob] Consent response:', {
         status: consent.status,
         formAvailable: consent.isConsentFormAvailable,
-        canRequestAds: consent.canRequestAds
+        canRequestAds: consent.canRequestAds,
+        mode: useLiveAds ? 'live' : 'Google test'
       });
 
       if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
@@ -43,19 +46,40 @@ async function prepareAdMob(): Promise<boolean> {
       }
 
       consentAllowsAds = Boolean(consent.canRequestAds);
-      if (!consentAllowsAds) {
-        console.warn('[AdMob] Consent currently does not allow ad requests.');
+      if (!consentAllowsAds && useLiveAds) {
+        console.warn('[AdMob] Live ads blocked because consent does not currently allow ad requests.');
         return false;
       }
 
+      if (!consentAllowsAds && !useLiveAds) {
+        // Test builds request Google's demo ad unit only. Allow this diagnostic
+        // path to run even when UMP has no consent result, so a consent response
+        // cannot silently prevent us from verifying the native banner integration.
+        console.warn('[AdMob] Consent did not allow requests; continuing with Google test ads only.');
+      }
+    } catch (error) {
+      if (useLiveAds) {
+        console.error('[AdMob] Consent failed; live ads will remain blocked:', error);
+        initialized = false;
+        consentAllowsAds = false;
+        return false;
+      }
+      // Test builds use Google's demo ad unit, never the app's live unit.
+      // Continue only in test mode so consent-network failures can be diagnosed.
+      console.warn('[AdMob] Consent check failed; continuing with Google test ads only:', error);
+    }
+
+    try {
       console.info('[AdMob] Initializing native SDK.');
       await AdMob.initialize();
       initialized = true;
+      // Test mode is allowed to display Google's demo ad even if UMP did not
+      // return canRequestAds=true. Live mode requires a positive consent result.
+      consentAllowsAds = !useLiveAds || consentAllowsAds;
       console.info('[AdMob] SDK initialized successfully.');
-      return true;
+      return consentAllowsAds;
     } catch (error) {
-      console.error('[AdMob] Consent/initialization failed:', error);
-      // Do not cache failure: a later Home visit can retry.
+      console.error('[AdMob] Native SDK initialization failed:', error);
       initialized = false;
       consentAllowsAds = false;
       return false;
