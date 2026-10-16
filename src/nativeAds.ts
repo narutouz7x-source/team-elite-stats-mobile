@@ -48,13 +48,11 @@ async function prepareAdMob(): Promise<boolean> {
       consentAllowsAds = Boolean(consent.canRequestAds);
       if (!consentAllowsAds && useLiveAds) {
         console.warn('[AdMob] Live ads blocked because consent does not currently allow ad requests.');
+        preparingAds = null;
         return false;
       }
 
       if (!consentAllowsAds && !useLiveAds) {
-        // Test builds request Google's demo ad unit only. Allow this diagnostic
-        // path to run even when UMP has no consent result, so a consent response
-        // cannot silently prevent us from verifying the native banner integration.
         console.warn('[AdMob] Consent did not allow requests; continuing with Google test ads only.');
       }
     } catch (error) {
@@ -62,10 +60,9 @@ async function prepareAdMob(): Promise<boolean> {
         console.error('[AdMob] Consent failed; live ads will remain blocked:', error);
         initialized = false;
         consentAllowsAds = false;
+        preparingAds = null;
         return false;
       }
-      // Test builds use Google's demo ad unit, never the app's live unit.
-      // Continue only in test mode so consent-network failures can be diagnosed.
       console.warn('[AdMob] Consent check failed; continuing with Google test ads only:', error);
     }
 
@@ -73,8 +70,6 @@ async function prepareAdMob(): Promise<boolean> {
       console.info('[AdMob] Initializing native SDK.');
       await AdMob.initialize();
       initialized = true;
-      // Test mode is allowed to display Google's demo ad even if UMP did not
-      // return canRequestAds=true. Live mode requires a positive consent result.
       consentAllowsAds = !useLiveAds || consentAllowsAds;
       console.info('[AdMob] SDK initialized successfully.');
       return consentAllowsAds;
@@ -111,14 +106,12 @@ export async function showHomeBanner(): Promise<void> {
         adId,
         adSize: BannerAdSize.ADAPTIVE_BANNER,
         position: BannerAdPosition.BOTTOM_CENTER,
-        // The native banner overlays the WebView. Keep it above the app navigation.
         margin: 72,
         isTesting: !useLiveAds
       });
       console.info('[AdMob] showBanner call completed.');
     } catch (error) {
       console.error('[AdMob] Home banner request failed:', error);
-      // Allow a later Home visit to retry instead of getting stuck.
     }
   })();
 
