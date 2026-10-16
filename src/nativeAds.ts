@@ -131,15 +131,17 @@ export function showHomeBanner(): Promise<boolean> {
   });
 }
 
-export function hideHomeBanner(): Promise<void> {
+export function hideHomeBanner(): Promise<boolean> {
   return enqueueBannerAction(async () => {
-    if (!Capacitor.isNativePlatform() || !initialized || !bannerVisible) return;
+    if (!Capacitor.isNativePlatform() || !initialized || !bannerVisible) return bannerVisible;
     try {
       await AdMob.hideBanner();
       bannerVisible = false;
       console.info('[AdMob] Home banner hidden.');
+      return false;
     } catch (error) {
       console.warn('[AdMob] Home banner could not be hidden:', error);
+      return bannerVisible;
     }
   });
 }
