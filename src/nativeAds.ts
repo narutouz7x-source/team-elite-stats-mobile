@@ -14,7 +14,8 @@ const GOOGLE_TEST_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-3940256099942544/1033173
 let initialized = false;
 let consentAllowsAds = false;
 let preparingAds: Promise<boolean> | null = null;
-let showingBanner: Promise<void> | null = null;
+let bannerVisible = false;
+let bannerActionQueue: Promise<void> = Promise.resolve();
 let interstitialPrepared = false;
 let preparingInterstitial: Promise<boolean> | null = null;
 let interstitialShowing = false;
@@ -91,11 +92,15 @@ async function prepareAdMob(): Promise<boolean> {
   return preparingAds;
 }
 
-export async function showHomeBanner(): Promise<void> {
-  if (showingBanner) return showingBanner;
+function enqueueBannerAction(action: () => Promise<void>): Promise<void> {
+  const next = bannerActionQueue.then(action, action);
+  bannerActionQueue = next.catch(() => undefined);
+  return next;
+}
 
-  showingBanner = (async () => {
-    if (!(await prepareAdMob())) return;
+export function showHomeBanner(): Promise<void> {
+  return enqueueBannerAction(async () => {
+    if (bannerVisible || !(await prepareAdMob())) return;
 
     const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
     const adId = useLiveAds ? APP_BANNER_AD_UNIT_ID : GOOGLE_TEST_BANNER_AD_UNIT_ID;
@@ -114,27 +119,26 @@ export async function showHomeBanner(): Promise<void> {
         margin: 0,
         isTesting: !useLiveAds
       });
-      console.info('[AdMob] showBanner call completed.');
+      bannerVisible = true;
+      console.info('[AdMob] Home banner is visible.');
     } catch (error) {
+      bannerVisible = false;
       console.error('[AdMob] Home banner request failed:', error);
     }
-  })();
-
-  try {
-    await showingBanner;
-  } finally {
-    showingBanner = null;
-  }
+  });
 }
 
-export async function hideHomeBanner(): Promise<void> {
-  if (!Capacitor.isNativePlatform() || !initialized) return;
-  try {
-    await AdMob.hideBanner();
-    console.info('[AdMob] Home banner hidden.');
-  } catch (error) {
-    console.warn('[AdMob] Home banner could not be hidden:', error);
-  }
+export function hideHomeBanner(): Promise<void> {
+  return enqueueBannerAction(async () => {
+    if (!Capacitor.isNativePlatform() || !initialized || !bannerVisible) return;
+    try {
+      await AdMob.hideBanner();
+      bannerVisible = false;
+      console.info('[AdMob] Home banner hidden.');
+    } catch (error) {
+      console.warn('[AdMob] Home banner could not be hidden:', error);
+    }
+  });
 }
 
 
