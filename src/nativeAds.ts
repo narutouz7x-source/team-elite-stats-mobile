@@ -111,7 +111,7 @@ export async function showHomeBanner(): Promise<void> {
         adId,
         adSize: BannerAdSize.ADAPTIVE_BANNER,
         position: BannerAdPosition.BOTTOM_CENTER,
-        margin: 72,
+        margin: 0,
         isTesting: !useLiveAds
       });
       console.info('[AdMob] showBanner call completed.');
