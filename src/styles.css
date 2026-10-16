@@ -216,4 +216,5 @@ button:focus-visible{outline-color:#ff6a00}
 @media(max-width:620px){.clip-submit-modal form{padding:20px;border-radius:18px}.clip-submit-head h2{font-size:19px}}
 
 /* Keep the fixed navigation clear of the native AdMob banner on Home. */
+/* Lift the nav only while the native Home banner is actually visible. */
 .app-shell.home-banner-visible .bottom-nav{bottom:82px}
