@@ -7,13 +7,12 @@ import {
 } from '@capacitor-community/admob';
 
 const APP_BANNER_AD_UNIT_ID = 'ca-app-pub-5805327525053497/6015603724';
-// This is Google's anchored adaptive banner test unit. The fixed-size test unit
-// can return a format that doesn't match ADAPTIVE_BANNER.
 const GOOGLE_TEST_BANNER_AD_UNIT_ID = 'ca-app-pub-3940256099942544/9214589741';
 
 let initialized = false;
 let consentAllowsAds = false;
 let preparingAds: Promise<boolean> | null = null;
+let showingBanner: Promise<void> | null = null;
 
 async function prepareAdMob(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) {
@@ -45,7 +44,7 @@ async function prepareAdMob(): Promise<boolean> {
 
       consentAllowsAds = Boolean(consent.canRequestAds);
       if (!consentAllowsAds) {
-        console.warn('[AdMob] Banner not requested because consent does not currently allow ad requests.');
+        console.warn('[AdMob] Consent currently does not allow ad requests.');
         return false;
       }
 
@@ -55,7 +54,10 @@ async function prepareAdMob(): Promise<boolean> {
       console.info('[AdMob] SDK initialized successfully.');
       return true;
     } catch (error) {
-      console.error('[AdMob] Initialization/consent failed:', error);
+      console.error('[AdMob] Consent/initialization failed:', error);
+      // Do not cache failure: a later Home visit can retry.
+      initialized = false;
+      consentAllowsAds = false;
       return false;
     } finally {
       preparingAds = null;
@@ -66,30 +68,40 @@ async function prepareAdMob(): Promise<boolean> {
 }
 
 export async function showHomeBanner(): Promise<void> {
-  if (!(await prepareAdMob())) return;
+  if (showingBanner) return showingBanner;
 
-  const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
-  const adId = useLiveAds ? APP_BANNER_AD_UNIT_ID : GOOGLE_TEST_BANNER_AD_UNIT_ID;
+  showingBanner = (async () => {
+    if (!(await prepareAdMob())) return;
+
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+    const adId = useLiveAds ? APP_BANNER_AD_UNIT_ID : GOOGLE_TEST_BANNER_AD_UNIT_ID;
+
+    try {
+      console.info('[AdMob] Requesting Home banner:', {
+        mode: useLiveAds ? 'live' : 'Google test',
+        adId,
+        size: 'ADAPTIVE_BANNER',
+        position: 'BOTTOM_CENTER'
+      });
+      await AdMob.showBanner({
+        adId,
+        adSize: BannerAdSize.ADAPTIVE_BANNER,
+        position: BannerAdPosition.BOTTOM_CENTER,
+        // The native banner overlays the WebView. Keep it above the app navigation.
+        margin: 72,
+        isTesting: !useLiveAds
+      });
+      console.info('[AdMob] showBanner call completed.');
+    } catch (error) {
+      console.error('[AdMob] Home banner request failed:', error);
+      // Allow a later Home visit to retry instead of getting stuck.
+    }
+  })();
 
   try {
-    console.info('[AdMob] Requesting home banner:', {
-      mode: useLiveAds ? 'live' : 'Google test',
-      adId,
-      size: 'ADAPTIVE_BANNER',
-      position: 'BOTTOM_CENTER',
-      margin: 72
-    });
-    await AdMob.showBanner({
-      adId,
-      adSize: BannerAdSize.ADAPTIVE_BANNER,
-      position: BannerAdPosition.BOTTOM_CENTER,
-      // Keep the native banner above the app's bottom navigation.
-      margin: 72,
-      isTesting: !useLiveAds
-    });
-    console.info('[AdMob] showBanner call completed.');
-  } catch (error) {
-    console.error('[AdMob] Home banner could not be shown:', error);
+    await showingBanner;
+  } finally {
+    showingBanner = null;
   }
 }
 
