@@ -253,3 +253,59 @@ export async function showRewardedTestAd(): Promise<boolean> {
     rewardedShowing = false;
   }
 }
+
+
+const APP_REWARDED_AD_UNIT_ID = 'ca-app-pub-5805327525053497/4600213185';
+const GOOGLE_TEST_REWARDED_AD_UNIT_ID = 'ca-app-pub-3940256099942544/5224354917';
+let rewardedPrepared = false;
+let preparingRewarded: Promise<boolean> | null = null;
+let rewardedShowing = false;
+
+/** Preload a rewarded video. Test builds use Google's official test unit. */
+export async function prepareRewardedContentAd(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return true;
+  if (!(await prepareAdMob())) return false;
+  if (rewardedPrepared) return true;
+  if (preparingRewarded) return preparingRewarded;
+
+  preparingRewarded = (async () => {
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+    const adId = useLiveAds ? APP_REWARDED_AD_UNIT_ID : GOOGLE_TEST_REWARDED_AD_UNIT_ID;
+    try {
+      console.info('[AdMob] Preparing rewarded content ad:', { mode: useLiveAds ? 'live' : 'Google test', adId });
+      await AdMob.prepareRewardVideoAd({ adId, isTesting: !useLiveAds });
+      rewardedPrepared = true;
+      return true;
+    } catch (error) {
+      rewardedPrepared = false;
+      console.error('[AdMob] Rewarded content ad failed to load:', error);
+      return false;
+    } finally {
+      preparingRewarded = null;
+    }
+  })();
+  return preparingRewarded;
+}
+
+/** Call only after the user explicitly agrees to watch an ad. */
+export async function showRewardedContentAd(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return true;
+  if (rewardedShowing) return false;
+  if (!rewardedPrepared && !(await prepareRewardedContentAd())) return false;
+
+  rewardedShowing = true;
+  try {
+    const reward = await AdMob.showRewardVideoAd();
+    rewardedPrepared = false;
+    console.info('[AdMob] Rewarded ad completed:', reward);
+    void prepareRewardedContentAd();
+    return Boolean(reward);
+  } catch (error) {
+    rewardedPrepared = false;
+    console.error('[AdMob] Rewarded ad did not complete:', error);
+    void prepareRewardedContentAd();
+    return false;
+  } finally {
+    rewardedShowing = false;
+  }
+}
