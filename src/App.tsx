@@ -183,7 +183,7 @@ export function App() {
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
-  return <div className="app-shell">
+  return <div className={tab === 'home' ? "app-shell home-banner-visible" : "app-shell"}>
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
