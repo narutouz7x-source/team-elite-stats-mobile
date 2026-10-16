@@ -15,7 +15,7 @@ let initialized = false;
 let consentAllowsAds = false;
 let preparingAds: Promise<boolean> | null = null;
 let bannerVisible = false;
-let bannerActionQueue: Promise<void> = Promise.resolve();
+let bannerActionQueue: Promise<unknown> = Promise.resolve();
 let interstitialPrepared = false;
 let preparingInterstitial: Promise<boolean> | null = null;
 let interstitialShowing = false;
@@ -92,15 +92,16 @@ async function prepareAdMob(): Promise<boolean> {
   return preparingAds;
 }
 
-function enqueueBannerAction(action: () => Promise<void>): Promise<void> {
+function enqueueBannerAction<T>(action: () => Promise<T>): Promise<T> {
   const next = bannerActionQueue.then(action, action);
-  bannerActionQueue = next.catch(() => undefined);
+  bannerActionQueue = next.then(() => undefined, () => undefined);
   return next;
 }
 
-export function showHomeBanner(): Promise<void> {
+export function showHomeBanner(): Promise<boolean> {
   return enqueueBannerAction(async () => {
-    if (bannerVisible || !(await prepareAdMob())) return;
+    if (bannerVisible) return true;
+    if (!(await prepareAdMob())) return false;
 
     const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
     const adId = useLiveAds ? APP_BANNER_AD_UNIT_ID : GOOGLE_TEST_BANNER_AD_UNIT_ID;
@@ -121,22 +122,26 @@ export function showHomeBanner(): Promise<void> {
       });
       bannerVisible = true;
       console.info('[AdMob] Home banner is visible.');
+      return true;
     } catch (error) {
       bannerVisible = false;
       console.error('[AdMob] Home banner request failed:', error);
+      return false;
     }
   });
 }
 
-export function hideHomeBanner(): Promise<void> {
+export function hideHomeBanner(): Promise<boolean> {
   return enqueueBannerAction(async () => {
-    if (!Capacitor.isNativePlatform() || !initialized || !bannerVisible) return;
+    if (!Capacitor.isNativePlatform() || !initialized || !bannerVisible) return bannerVisible;
     try {
       await AdMob.hideBanner();
       bannerVisible = false;
       console.info('[AdMob] Home banner hidden.');
+      return false;
     } catch (error) {
       console.warn('[AdMob] Home banner could not be hidden:', error);
+      return bannerVisible;
     }
   });
 }
