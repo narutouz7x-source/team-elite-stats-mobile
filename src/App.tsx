@@ -121,8 +121,8 @@ export function App() {
         if (!cancelled) setHomeBannerVisible(visible);
       });
     } else {
-      void hideHomeBanner().then(() => {
-        if (!cancelled) setHomeBannerVisible(false);
+      void hideHomeBanner().then(visible => {
+        if (!cancelled) setHomeBannerVisible(visible);
       });
     }
     return () => { cancelled = true; };
