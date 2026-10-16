@@ -4,7 +4,7 @@ import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
 import { initializeNativeNotifications } from './nativeNotifications';
-import { hideHomeBanner, showHomeBanner } from './nativeAds';
+import { hideHomeBanner, showHomeBanner, prepareHomeInterstitial, showHomeInterstitial, prepareRewardedTestAd, showRewardedTestAd } from './nativeAds';
 import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
@@ -78,6 +78,8 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
+  const [adTestStatus, setAdTestStatus] = useState('Ready to test Google demo ads.');
+  const [adTestBusy, setAdTestBusy] = useState(false);
 
   const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
 
@@ -185,6 +187,15 @@ export function App() {
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
+        {import.meta.env.VITE_ADMOB_LIVE_ADS !== 'true' && <section style={{margin:'16px 0',padding:16,border:'1px solid #f59e0b',borderRadius:14,background:'#111713',color:'#fff'}}>
+          <div style={{fontSize:12,letterSpacing:1.5,color:'#f59e0b',fontWeight:800}}>ADMOB TEST LAB</div>
+          <p style={{fontSize:13,color:'#cbd5d1',margin:'8px 0 12px'}}>Google demo ads only. No in-app reward is granted.</p>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            <button disabled={adTestBusy} onClick={async()=>{setAdTestBusy(true);setAdTestStatus('Preparing interstitial…');try{const ok=await prepareHomeInterstitial();if(!ok){setAdTestStatus('Interstitial failed to prepare. Check Android logs.');return;}setAdTestStatus('Interstitial ready; showing…');const shown=await showHomeInterstitial();setAdTestStatus(shown?'Interstitial show requested.':'Interstitial could not be shown.');}catch(e){setAdTestStatus('Interstitial error: '+String(e));}finally{setAdTestBusy(false);}}} style={{padding:'10px 12px',borderRadius:9,border:0,background:'#f59e0b',color:'#111',fontWeight:800}}>Test Interstitial</button>
+            <button disabled={adTestBusy} onClick={async()=>{setAdTestBusy(true);setAdTestStatus('Preparing rewarded test ad…');try{const ok=await prepareRewardedTestAd();if(!ok){setAdTestStatus('Rewarded ad failed to prepare. Check Android logs.');return;}setAdTestStatus('Rewarded ad ready; showing…');const shown=await showRewardedTestAd();setAdTestStatus(shown?'Rewarded ad show requested. No reward granted.':'Rewarded ad could not be shown.');}catch(e){setAdTestStatus('Rewarded ad error: '+String(e));}finally{setAdTestBusy(false);}}} style={{padding:'10px 12px',borderRadius:9,border:'1px solid #f59e0b',background:'transparent',color:'#fff',fontWeight:800}}>Test Rewarded</button>
+          </div>
+          <p aria-live="polite" style={{fontSize:12,color:'#d1d5db',margin:'12px 0 0'}}>{adTestStatus}</p>
+        </section>}
         <section className="mobile-overview-hero">
           <div><span>OG ELITE / LIVE PERFORMANCE CENTER</span><h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1><p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p></div>
           <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
