@@ -58,6 +58,7 @@ const relativeTime = (timestamp?: number) => {
 
 export function App() {
   const [tab, setTab] = useState<Tab>('home');
+  const [homeBannerVisible, setHomeBannerVisible] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -112,13 +113,19 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    // Serialize banner visibility changes in nativeAds so a late hide from the
-    // previous tab cannot remove the banner after Home has requested it.
+    // Move the navigation only after the native SDK confirms the Home banner
+    // is visible. A failed/missing ad must not leave a blank reserved area.
+    let cancelled = false;
     if (tab === 'home') {
-      void showHomeBanner();
+      void showHomeBanner().then(visible => {
+        if (!cancelled) setHomeBannerVisible(visible);
+      });
     } else {
-      void hideHomeBanner();
+      void hideHomeBanner().then(() => {
+        if (!cancelled) setHomeBannerVisible(false);
+      });
     }
+    return () => { cancelled = true; };
   }, [tab]);
 
   useEffect(() => {
@@ -182,7 +189,7 @@ export function App() {
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
-  return <div className={tab === 'home' ? "app-shell home-banner-visible" : "app-shell"}>
+  return <div className={homeBannerVisible ? "app-shell home-banner-visible" : "app-shell"}>
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
