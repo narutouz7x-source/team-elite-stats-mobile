@@ -24,13 +24,16 @@ async function prepareAdMob(): Promise<boolean> {
   if (preparingAds) return preparingAds;
 
   preparingAds = (async () => {
+    const useLiveAds = import.meta.env.VITE_ADMOB_LIVE_ADS === 'true';
+
     try {
       console.info('[AdMob] Requesting consent information.');
       let consent = await AdMob.requestConsentInfo();
       console.info('[AdMob] Consent response:', {
         status: consent.status,
         formAvailable: consent.isConsentFormAvailable,
-        canRequestAds: consent.canRequestAds
+        canRequestAds: consent.canRequestAds,
+        mode: useLiveAds ? 'live' : 'Google test'
       });
 
       if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
@@ -43,19 +46,35 @@ async function prepareAdMob(): Promise<boolean> {
       }
 
       consentAllowsAds = Boolean(consent.canRequestAds);
-      if (!consentAllowsAds) {
-        console.warn('[AdMob] Consent currently does not allow ad requests.');
+      if (!consentAllowsAds && useLiveAds) {
+        console.warn('[AdMob] Live ads blocked because consent does not currently allow ad requests.');
+        preparingAds = null;
         return false;
       }
 
+      if (!consentAllowsAds && !useLiveAds) {
+        console.warn('[AdMob] Consent did not allow requests; continuing with Google test ads only.');
+      }
+    } catch (error) {
+      if (useLiveAds) {
+        console.error('[AdMob] Consent failed; live ads will remain blocked:', error);
+        initialized = false;
+        consentAllowsAds = false;
+        preparingAds = null;
+        return false;
+      }
+      console.warn('[AdMob] Consent check failed; continuing with Google test ads only:', error);
+    }
+
+    try {
       console.info('[AdMob] Initializing native SDK.');
       await AdMob.initialize();
       initialized = true;
+      consentAllowsAds = !useLiveAds || consentAllowsAds;
       console.info('[AdMob] SDK initialized successfully.');
-      return true;
+      return consentAllowsAds;
     } catch (error) {
-      console.error('[AdMob] Consent/initialization failed:', error);
-      // Do not cache failure: a later Home visit can retry.
+      console.error('[AdMob] Native SDK initialization failed:', error);
       initialized = false;
       consentAllowsAds = false;
       return false;
@@ -87,14 +106,12 @@ export async function showHomeBanner(): Promise<void> {
         adId,
         adSize: BannerAdSize.ADAPTIVE_BANNER,
         position: BannerAdPosition.BOTTOM_CENTER,
-        // The native banner overlays the WebView. Keep it above the app navigation.
         margin: 72,
         isTesting: !useLiveAds
       });
       console.info('[AdMob] showBanner call completed.');
     } catch (error) {
       console.error('[AdMob] Home banner request failed:', error);
-      // Allow a later Home visit to retry instead of getting stuck.
     }
   })();
 
