@@ -70,8 +70,7 @@ jobs:
               manifest.write_text(text)
           PY
 
-      # Install native OG ELITE home-screen widgets into the generated Capacitor project.
-      - run: python3 scripts/install_widgets.py
+      # Home-screen widget sources remain in the repository but are not installed in this APK.
 
       # Firebase Android configuration is required for FCM token generation.
       - run: cp google-services.json android/app/google-services.json
