@@ -88,8 +88,10 @@ export function App() {
     return earned;
   }
 
+  // Match results must remain accessible while live AdMob inventory/review is pending.
+  // Rewarded ads remain available for clips, but never gate match-result access.
   async function handleViewMatch(match: Match) {
-    if (await requestRewardedAccess('match')) setSelectedMatch(match);
+    setSelectedMatch(match);
   }
 
   async function handleWatchClip(url: string) {
