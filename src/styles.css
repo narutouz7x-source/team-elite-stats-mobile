@@ -722,3 +722,79 @@ body:after{background:radial-gradient(ellipse at 50% 0%,rgba(190,198,210,.075),t
 .history-selected-head>div>span{font-size:8px;font-weight:850;letter-spacing:.15em;color:#aeb4bf}
 .history-selected-head h2{font-size:21px;line-height:1.15;letter-spacing:-.04em;margin:7px 0}
 .history-selected-head small{font-size:8px;letter-spacing:.1em;color:#969da8}
+
+
+/* NAV LIQUID BLOOM — elastic glass that lifts beyond the dock while dragged */
+.bottom-nav,
+.nav-tabs{overflow:visible}
+.nav-liquid-indicator{
+  top:4px;
+  bottom:4px;
+  transform-origin:center;
+  transform:translateX(var(--active-shift,0%)) scaleX(1) scaleY(1);
+  border-radius:999px;
+  background:
+    radial-gradient(ellipse at 28% 12%,rgba(255,255,255,.34),transparent 48%),
+    linear-gradient(145deg,rgba(245,247,250,.27),rgba(115,125,140,.16) 58%,rgba(255,255,255,.10));
+  border:1px solid rgba(255,255,255,.48);
+  box-shadow:
+    0 5px 18px rgba(0,0,0,.34),
+    0 0 22px rgba(230,235,244,.14),
+    inset 0 1px 1px rgba(255,255,255,.48),
+    inset 0 -1px 1px rgba(0,0,0,.28);
+  transition:
+    transform .62s cubic-bezier(.2,1.35,.3,1),
+    top .28s cubic-bezier(.2,1.2,.3,1),
+    bottom .28s cubic-bezier(.2,1.2,.3,1),
+    border-radius .28s ease,
+    filter .28s ease,
+    box-shadow .28s ease;
+  will-change:transform,top,bottom;
+}
+.nav-liquid-indicator:before{
+  inset:1px;
+  border-radius:inherit;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.32),transparent 38%,rgba(255,255,255,.06) 72%,rgba(0,0,0,.10)),
+    radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.18),transparent 72%);
+}
+.nav-liquid-indicator:after{
+  left:18%;
+  right:18%;
+  top:2px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.86),transparent);
+  filter:blur(.25px);
+}
+.nav-tabs.dragging .nav-liquid-indicator{
+  top:-8px;
+  bottom:-8px;
+  transform:translateX(var(--active-shift,0%)) scaleX(var(--nav-stretch,1)) scaleY(1.28);
+  border-radius:999px;
+  filter:brightness(1.2) saturate(.72);
+  box-shadow:
+    0 10px 28px rgba(0,0,0,.42),
+    0 0 30px rgba(235,240,248,.24),
+    inset 0 1px 2px rgba(255,255,255,.62),
+    inset 0 -2px 3px rgba(0,0,0,.3);
+}
+.nav-tabs.dragging .nav-liquid-indicator:before{
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.42),transparent 42%,rgba(255,255,255,.10)),
+    radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.28),transparent 70%);
+}
+.nav-tabs.dragging .nav-liquid-indicator:after{
+  left:10%;
+  right:10%;
+  top:3px;
+  height:3px;
+  filter:blur(1px);
+}
+.nav-tabs.dragging .nav-item.active svg{
+  transform:translateY(-2px) scale(1.08);
+  filter:drop-shadow(0 2px 8px rgba(255,255,255,.38));
+}
+@media(prefers-reduced-motion:reduce){
+  .nav-liquid-indicator{transition:none!important}
+}
