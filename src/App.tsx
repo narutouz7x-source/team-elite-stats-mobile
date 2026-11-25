@@ -4,7 +4,6 @@ import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
 import { initializeNativeNotifications } from './nativeNotifications';
-import { hideHomeBanner, prepareRewardedContentAd, showHomeBanner, showRewardedContentAd } from './nativeAds';
 import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
@@ -64,7 +63,6 @@ export function App() {
   const [navDragging, setNavDragging] = useState(false);
   const navLastX = useRef<number | null>(null);
   const [navStretch, setNavStretch] = useState(1);
-  const [homeBannerVisible, setHomeBannerVisible] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -89,13 +87,6 @@ export function App() {
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
 
-  async function requestRewardedAccess(placement: 'clip' | 'match'): Promise<boolean> {
-    const label = placement === 'clip' ? 'watch this clip' : 'view this match data';
-    if (!window.confirm(`Watch a short ad to ${label}? You can cancel and return to the app.`)) return false;
-    const earned = await showRewardedContentAd();
-    if (!earned) window.alert('A rewarded ad is not available right now. Please try again in a moment.');
-    return earned;
-  }
 
   // Match results must remain accessible while live AdMob inventory/review is pending.
   // Rewarded ads remain available for clips, but never gate match-result access.
@@ -104,7 +95,7 @@ export function App() {
   }
 
   async function handleWatchClip(url: string) {
-    if (await requestRewardedAccess('clip')) window.open(url, '_system');
+    window.open(url, '_system');
   }
 
   const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
@@ -134,27 +125,10 @@ export function App() {
 
   useEffect(() => {
     void load();
-    void prepareRewardedContentAd();
     void initializeNativeNotifications().then(diagnostic => {
       if (diagnostic?.error) console.warn('[FCM diagnostic] app status:', diagnostic);
     });
   }, []);
-
-  useEffect(() => {
-    // Move the navigation only after the native SDK confirms the Home banner
-    // is visible. A failed/missing ad must not leave a blank reserved area.
-    let cancelled = false;
-    if (tab === 'home') {
-      void showHomeBanner().then(visible => {
-        if (!cancelled) setHomeBannerVisible(visible);
-      });
-    } else {
-      void hideHomeBanner().then(visible => {
-        if (!cancelled) setHomeBannerVisible(visible);
-      });
-    }
-    return () => { cancelled = true; };
-  }, [tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -224,7 +198,7 @@ export function App() {
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
-  return <div className={homeBannerVisible ? "app-shell home-banner-visible" : "app-shell"}>
+  return <div className="app-shell">
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
     <main>
       {tab === 'home' && <>
