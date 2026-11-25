@@ -694,3 +694,31 @@ body:after{background:radial-gradient(ellipse at 50% 0%,rgba(190,198,210,.075),t
  .hero-orbit-art{right:-8px;transform:translateY(-50%) scale(.82);opacity:.84}
  .mobile-overview-hero h1{font-size:22px!important}
 }
+
+/* TOURNAMENT-FIRST MATCH HISTORY */
+.history-tournament-list{display:flex;flex-direction:column;gap:10px;margin:5px 0 28px}
+.history-list-kicker{display:flex;align-items:center;justify-content:space-between;padding:0 4px 3px;color:#d7dbe1;font-size:9px;font-weight:850;letter-spacing:.16em}
+.history-list-kicker small{color:#858b95;font-size:8px;letter-spacing:.12em}
+.history-tournament-card{
+ width:100%;min-height:82px;display:flex;align-items:center;gap:12px;
+ padding:13px 13px;text-align:left;color:#f5f6f8;
+ border-radius:17px;border:1px solid rgba(220,225,233,.14);
+ background:linear-gradient(112deg,rgba(38,42,50,.96),rgba(19,21,26,.98));
+ box-shadow:inset 0 1px rgba(255,255,255,.07),0 10px 24px rgba(0,0,0,.22);
+ transition:transform .2s ease,border-color .2s ease,background .2s ease;
+}
+.history-tournament-card:active{transform:scale(.985);border-color:rgba(245,247,250,.32)}
+.history-tournament-mark{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:13px;color:#e4e7ec;background:linear-gradient(145deg,rgba(235,239,245,.17),rgba(130,136,146,.06));border:1px solid rgba(235,239,245,.16);box-shadow:inset 0 1px rgba(255,255,255,.16)}
+.history-tournament-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.history-tournament-copy strong{font-size:13px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
+.history-tournament-copy small{font-size:8px;letter-spacing:.09em;color:#969da8}
+.history-tournament-meta{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:2px}
+.history-tournament-meta b{font-size:19px;line-height:1;color:#f4f5f7}
+.history-tournament-meta small{font-size:7px;letter-spacing:.12em;color:#9299a4}
+.history-tournament-meta em{font-style:normal;font-size:8px;font-weight:800;color:#c4c9d1;margin-top:3px}
+.history-tournament-arrow{flex:0 0 auto;color:#aab0ba}
+.history-selected-head{display:flex;flex-direction:column;gap:13px;padding:15px 16px;margin:4px 0 17px;border-radius:17px;border:1px solid rgba(220,225,233,.14);background:linear-gradient(120deg,#252931,#15171c);box-shadow:inset 0 1px rgba(255,255,255,.07)}
+.history-back{align-self:flex-start;padding:7px 10px;border-radius:999px;border:1px solid rgba(220,225,233,.16);background:rgba(255,255,255,.055);color:#cdd2da;font-size:8px;font-weight:850;letter-spacing:.09em}
+.history-selected-head>div>span{font-size:8px;font-weight:850;letter-spacing:.15em;color:#aeb4bf}
+.history-selected-head h2{font-size:21px;line-height:1.15;letter-spacing:-.04em;margin:7px 0}
+.history-selected-head small{font-size:8px;letter-spacing:.1em;color:#969da8}
