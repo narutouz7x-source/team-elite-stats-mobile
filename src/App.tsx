@@ -299,6 +299,23 @@ function SocialIcon({type}:{type:'youtube'|'instagram'}){if(type==='youtube')ret
 function NavButton({active,label,icon,onClick}:{active:boolean;label:string;icon:React.ReactNode;onClick:()=>void}){return <button className={active?'nav-item active':'nav-item'} onClick={onClick}>{icon}<span>{label}</span></button>}
 function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>}
 function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>WEEK / PHASE</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>OVERALL</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
+function TournamentHistoryList({tournaments,matches,onSelect}:{tournaments:Tournament[];matches:Match[];onSelect:(id:string)=>void}) {
+  if (!tournaments.length) return <section className="history-tournament-list"><EmptyState text="No tournaments in this category yet."/></section>;
+  return <section className="history-tournament-list">
+    <div className="history-list-kicker"><span>TOURNAMENT ARCHIVE</span><small>{tournaments.length} TOURNAMENTS</small></div>
+    {tournaments.slice().sort((a,b)=>Number(b.active)-Number(a.active)).map(tournament=>{
+      const rows=matches.filter(match=>match.tournamentId===tournament.id);
+      const points=rows.reduce((sum,match)=>sum+(Number(match.totalPoints)||0),0);
+      const latest=rows.reduce((value,match)=>Math.max(value,Number(match.timestamp)||0),0);
+      return <button type="button" className="history-tournament-card" key={tournament.id} onClick={()=>onSelect(tournament.id)}>
+        <span className="history-tournament-mark"><Trophy size={19}/></span>
+        <span className="history-tournament-copy"><strong>{tournament.name}</strong><small>{tournament.active?'CURRENT TOURNAMENT':tournament.status.toUpperCase()} {latest?' · '+relativeTime(latest):''}</small></span>
+        <span className="history-tournament-meta"><b>{rows.length}</b><small>MATCHES</small><em>{points} PTS</em></span>
+        <ChevronRight className="history-tournament-arrow" size={18}/>
+      </button>;
+    })}
+  </section>;
+}
 function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
 function placementPoints(position:number){const rankPoints:Record<number,number>={1:12,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};return rankPoints[position]||0}
 function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],allMatches:Match[],selectedStage:string){
