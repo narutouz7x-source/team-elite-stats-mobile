@@ -246,7 +246,7 @@ export function App() {
         </section>
       </>}
 
-      {tab === 'stats' && <AnalyticsPanel matches={visibleMatches} players={players} playerStats={playerStats}/>}
+      {tab === 'stats' && <AnalyticsPanel matches={visibleMatches} players={players}/>}
 
       {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}
 
