@@ -933,3 +933,35 @@ hr,.divider{border-color:rgba(231,228,241,.10)}
 @media(prefers-reduced-motion:reduce){
  .nav-liquid-indicator{transition:none!important}
 }
+
+
+/* Home performance graphs — website-style match ledger visualisation */
+.home-performance{display:grid;gap:14px;margin:18px 0 28px}
+.home-performance-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:2px 2px 4px}
+.home-performance-heading>div>span,.home-graph-title>div>span{display:block;font-size:9px;font-weight:900;letter-spacing:.17em;color:#c4b5fd}
+.home-performance-heading h2{font-size:22px;letter-spacing:-.045em;margin:5px 0 3px;color:#f5f3f8}
+.home-performance-heading p{font-size:11px;line-height:1.5;color:#a5a2af;margin:0;max-width:280px}
+.home-performance-heading>i{font-style:normal;white-space:nowrap;font-size:8px;letter-spacing:.1em;color:#d9d0f4;border:1px solid rgba(196,181,253,.22);background:rgba(196,181,253,.08);padding:7px 9px;border-radius:999px}
+.home-graph-card{min-width:0;padding:16px 14px 12px;border-radius:21px;background:linear-gradient(145deg,rgba(37,37,47,.96),rgba(15,16,21,.98));border:1px solid rgba(235,230,249,.12);box-shadow:inset 0 1px rgba(255,255,255,.06),0 14px 34px rgba(0,0,0,.22)}
+.home-graph-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.home-graph-title h3{font-size:16px;letter-spacing:-.025em;margin:4px 0 0;color:#f4f1f8}
+.home-graph-title>strong{font-size:23px;color:#eee8ff;white-space:nowrap;text-align:right}
+.home-graph-title>strong small{display:block;font-size:7px;letter-spacing:.13em;color:#a9a4b5}
+.home-graph-plot{height:132px;display:flex;align-items:stretch;gap:8px;min-width:0}
+.home-graph-axis{width:18px;display:flex;flex-direction:column;justify-content:space-between;padding:4px 0 12px;color:#8f8a9b;font-size:8px;text-align:right}
+.home-graph-plot svg{width:100%;height:100%;overflow:visible}
+.home-graph-labels{display:flex;justify-content:space-between;gap:2px;padding-left:26px;margin-top:3px;overflow:hidden}
+.home-graph-labels span{font-size:8px;color:#a7a2b1;white-space:nowrap}
+.home-player-select{display:grid;gap:4px;min-width:118px}
+.home-player-select>span{font-size:7px;letter-spacing:.12em;color:#aaa4b8;font-weight:900}
+.home-player-select select{max-width:155px;width:100%;height:32px;padding:0 25px 0 10px;border-radius:999px;background:rgba(255,255,255,.075);border:1px solid rgba(232,225,248,.17);color:#f3effb;font-size:10px;outline:none}
+.home-player-select option{background:#17171e;color:#fff}
+@media(max-width:380px){
+ .home-graph-card{padding:13px 10px 10px}
+ .home-graph-title h3{font-size:14px}
+ .home-graph-title>strong{font-size:20px}
+ .home-player-select{min-width:104px}
+ .home-player-select select{max-width:128px;font-size:9px}
+}
+.nav-liquid-indicator{width:20%!important}
+.nav-tabs{touch-action:pan-y}
