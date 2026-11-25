@@ -1229,3 +1229,23 @@ main{padding-left:0!important;padding-right:0!important}
  .mobile-overview-hero{height:202px!important;min-height:202px!important;max-height:202px!important}
  .mobile-public-player-image{height:280px!important}
 }
+
+
+/* Liquid navigation bloom: circular resting lens, symmetric vertical expansion */
+.nav-liquid-indicator{
+ width:20%!important;
+ aspect-ratio:1/1!important;
+ height:auto!important;
+ top:50%!important;
+ bottom:auto!important;
+ border-radius:50%!important;
+ transform:translateX(var(--active-shift,0%)) translateY(-50%) scale(1)!important;
+ transform-origin:center center!important;
+}
+.nav-tabs.dragging .nav-liquid-indicator{
+ top:50%!important;
+ bottom:auto!important;
+ border-radius:50%!important;
+ transform:translateX(var(--active-shift,0%)) translateY(-50%) scaleX(var(--nav-stretch,1)) scaleY(1.48)!important;
+ transform-origin:center center!important;
+}
