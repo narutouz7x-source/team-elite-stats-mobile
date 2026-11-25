@@ -21,13 +21,13 @@ for path in LAYOUT.glob("widget_*.xml"):
 for path in XML.glob("widget_info_*.xml"):
     path.unlink()
 
-for name in ["OgEliteApplication.kt", "PerformanceWidget.kt", "WidgetRefreshWorker.kt", "PlayerWidgetConfigActivity.kt"]:
+for name in ["OgEliteApplication.kt", "PerformanceWidget.kt", "WidgetRefreshWorker.kt", "PlayerWidgetConfigActivity.kt", "KillsGraphWidget.kt", "KillsGraphRefreshWorker.kt"]:
     (JAVA / name).write_text((SRC / name).read_text())
 
-for name in ["widget_loading.xml", "widget_stats.xml", "widget_strip.xml", "widget_player.xml"]:
+for name in ["widget_loading.xml", "widget_stats.xml", "widget_strip.xml", "widget_player.xml", "widget_graph.xml"]:
     (LAYOUT / name).write_text((SRC / name).read_text())
 
-for name in ["widget_info_team.xml", "widget_info_player.xml"]:
+for name in ["widget_info_team.xml", "widget_info_player.xml", "widget_info_graph.xml"]:
     (XML / name).write_text((SRC / name).read_text())
 
 (DRAWABLE / "widget_glass.xml").write_text((SRC / "widget_glass.xml").read_text())
@@ -86,6 +86,17 @@ receivers = '''
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_player" />
+        </receiver>
+
+        <receiver
+            android:name="com.teamelite.stats.widget.KillsGraphWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_graph" />
         </receiver>
 '''
 if "com.teamelite.stats.widget.PlayerWidgetConfigActivity" not in m:
