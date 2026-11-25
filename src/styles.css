@@ -1554,3 +1554,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .home-graph-title{gap:8px!important}
  .mobile-creator-grid,.mobile-clips-grid{grid-template-columns:1fr!important}
 }
+
+
+/* Last-pass contrast and remaining creator / modal details */
+.hero-eyebrow>i,.hero-chip.muted i{background:var(--og-accent)!important;box-shadow:none!important}
+.overview-bar-row>div:first-child span,.history-list-kicker small{color:var(--og-muted)!important}
+.detail-grid small,.modal-player-list span,.mobile-empty-feature span,.mobile-creator-name span{color:var(--og-muted)!important}
+.mobile-creator-image,.mobile-creator-image>img,.mobile-creator-fallback{background:var(--og-surface-raised)!important}
+.mobile-creator-fallback{color:var(--og-glacier)!important}
+.mobile-creator-image>small{background:var(--og-accent)!important;color:var(--og-bg)!important}
+.clip-submit-head,.clip-submit-head>div:last-child{color:var(--og-glacier)!important}
+.clip-message{background:var(--og-surface-raised)!important;border:1px solid var(--og-border)!important;color:var(--og-glacier)!important}
+.app-update-actions button{border-radius:10px}
+.app-update-later{color:var(--og-glacier)!important;background:var(--og-surface-raised)!important;border-color:var(--og-border)!important}
+.app-update-now{color:var(--og-bg)!important;background:var(--og-accent)!important}
+.history-tournament-copy strong,.history-tournament-meta b{color:var(--og-glacier)!important}
+.history-tournament-mark{background:var(--og-surface-raised)!important;border-color:var(--og-border)!important;box-shadow:none!important}
+.notification strong,.mobile-creator-name h2,.mobile-clip-info h2{color:var(--og-glacier)!important}
