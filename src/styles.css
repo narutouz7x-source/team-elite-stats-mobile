@@ -1249,3 +1249,34 @@ main{padding-left:0!important;padding-right:0!important}
  transform:translateX(var(--active-shift,0%)) translateY(-50%) scaleX(var(--nav-stretch,1)) scaleY(1.48)!important;
  transform-origin:center center!important;
 }
+
+
+/* Player page palette cleanup — eliminate every legacy electric-blue accent */
+.mobile-players-intro h1 em,
+.mobile-roster-count strong,
+.mobile-public-player-identity small,
+.mobile-public-player-image>b,
+.mobile-public-player-image>i,
+.mobile-public-player-stats strong,
+.mobile-public-player-stats span{
+ color:#d3c9fa!important;
+}
+.mobile-roster-count{
+ border-color:rgba(211,201,250,.2)!important;
+ background:rgba(201,189,245,.055)!important;
+ box-shadow:0 0 30px rgba(201,189,245,.07)!important;
+}
+.mobile-public-player-image{
+ background-color:#17171f!important;
+}
+.mobile-public-player-image:before{
+ background:linear-gradient(180deg,rgba(5,5,9,.04) 20%,rgba(5,5,9,.88) 100%)!important;
+}
+.mobile-public-player-image>i{
+ background:rgba(201,189,245,.09)!important;
+ border-color:rgba(211,201,250,.2)!important;
+}
+.mobile-public-player-stats{
+ background:rgba(255,255,255,.025)!important;
+ border-top-color:rgba(235,232,243,.12)!important;
+}
