@@ -1080,3 +1080,43 @@ input::placeholder,textarea::placeholder{color:#85818e!important}
 button:focus-visible{outline:2px solid #d3c9fa!important;outline-offset:3px}
 a{color:#d3c9fa}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+
+/* Wider, edge-efficient mobile canvas — consistent across every tab */
+.app-shell{width:100%!important;max-width:1440px!important;padding-left:12px!important;padding-right:12px!important}
+main{width:100%!important;max-width:none!important}
+main>*{min-width:0}
+.home-performance,.mobile-player-grid,.mobile-clips-grid,.mobile-creator-grid,
+.history-tournament-list,.history-selected-head,.mobile-overview-content,
+.mobile-overview-stats,.stats-grid,.section,.campaign-card,.mobile-content-hero,
+.mobile-players-intro{width:100%;max-width:none}
+.home-graph-card,.mobile-public-player,.mobile-full-clip,.mobile-creator-card,
+.history-tournament-card,.mobile-overview-panel,.stats-grid>div,.campaign-card{
+ min-width:0;
+}
+@media(max-width:520px){
+ .app-shell{padding-left:10px!important;padding-right:10px!important}
+ .mobile-player-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ .mobile-public-player{border-radius:20px!important}
+ .mobile-public-player-image{height:clamp(230px,72vw,330px)!important;background:linear-gradient(145deg,#25252e,#111218)!important;overflow:hidden}
+ .mobile-public-player-image:before{background:linear-gradient(180deg,rgba(5,5,9,.04) 20%,rgba(5,5,9,.88) 100%)!important}
+ .mobile-public-player-image:after{border-color:rgba(235,232,243,.12)!important}
+ .mobile-public-player-identity{left:12px!important;right:42px!important;top:14px!important}
+ .mobile-public-player-identity strong{font-size:clamp(11px,3.5vw,16px)!important}
+ .mobile-public-player-identity small{color:#d3c9fa!important}
+ .mobile-public-player-image>b{right:12px!important;top:12px!important}
+ .mobile-public-player-image>i{left:12px!important;bottom:12px!important}
+ .mobile-player-fallback{position:absolute;inset:0;display:grid;place-items:center;font:800 46px Orbitron!important;color:rgba(211,201,250,.36)!important;z-index:1}
+ .mobile-player-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;z-index:0}
+ .mobile-public-player-identity,.mobile-public-player-image>b,.mobile-public-player-image>i{z-index:3}
+ .mobile-public-player-stats{padding:12px 8px!important;gap:4px!important}
+ .mobile-public-player-stats strong{font-size:clamp(13px,4vw,18px)!important}
+ .mobile-public-player-stats span{font-size:7px!important}
+ .mobile-content-hero{padding-top:30px!important}
+ .home-performance{margin-top:14px!important}
+}
+@media(max-width:360px){
+ .app-shell{padding-left:8px!important;padding-right:8px!important}
+ .mobile-player-grid{gap:7px!important}
+ .mobile-public-player-image{height:225px!important}
+}
