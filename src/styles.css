@@ -798,3 +798,138 @@ body:after{background:radial-gradient(ellipse at 50% 0%,rgba(190,198,210,.075),t
 @media(prefers-reduced-motion:reduce){
   .nav-liquid-indicator{transition:none!important}
 }
+
+
+/* =========================================================
+   OG ELITE — APP-WIDE OBSIDIAN / SOFT LILAC SYSTEM
+   Shared surfaces and accents for every tab, not Home only.
+   ========================================================= */
+:root{
+  --og-bg:#090a0e;
+  --og-bg-2:#101116;
+  --og-panel:rgba(27,28,35,.82);
+  --og-panel-strong:rgba(34,35,43,.94);
+  --og-line:rgba(231,231,240,.11);
+  --og-text:#f4f3f7;
+  --og-muted:#a4a2ad;
+  --og-accent:#c4b5fd;
+  --og-accent-soft:#e5ddff;
+  --og-accent-wash:rgba(196,181,253,.13);
+  --og-glow:rgba(196,181,253,.12);
+}
+html,body,#root{background:#090a0e;color:var(--og-text)}
+body:before{
+ background-image:linear-gradient(rgba(230,226,242,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(230,226,242,.018) 1px,transparent 1px);
+}
+body:after{background:radial-gradient(circle,rgba(196,181,253,.075),transparent 67%);filter:blur(34px)}
+main{color:var(--og-text)}
+.page-heading{color:var(--og-text)}
+.page-heading h1,.page-heading h2,.section-heading h2{color:#f5f3f9}
+.page-heading p,.page-subtitle,.muted,.subtle{color:var(--og-muted)}
+/* Consistent elevated cards across Home, Stats, Matches, Team, Clips and Crew */
+.stats-grid>div,.campaign-card,.player-card,.match-card,.notification,
+.player-card-large,.analytics-kpi-grid article,.liquid-panel,
+.mobile-overview-panel,.history-tournament-card,.history-selected-head,
+.clip-card,.clip-item,.team-card,.crew-card,.leaderboard-card,
+.stat-card,.performance-card,.graph-card,.chart-card,.stage-card{
+ background:linear-gradient(145deg,rgba(34,35,43,.94),rgba(17,18,23,.97))!important;
+ border:1px solid rgba(231,228,241,.105)!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.055),0 12px 30px rgba(0,0,0,.24)!important;
+ color:var(--og-text);
+ border-radius:18px;
+}
+.stats-grid>div strong,.player-card strong,.match-card strong,
+.campaign-card strong,.notification strong,.clip-card strong,
+.team-card strong,.crew-card strong{color:#f5f3f8}
+.stats-grid>div small,.player-card small,.match-card small,
+.campaign-card p,.notification p,.notification time,
+.clip-card p,.team-card small,.crew-card small{color:#aaa8b3}
+/* Shared labels, filters, form controls and action surfaces */
+.stage,.filter-chip,.mode-switch,.mobile-overview-mode,
+select,input,textarea,.search-field,.icon-button,.refresh,
+.history-back,.tab-pill,.filter-button{
+ background:rgba(255,255,255,.055);
+ border:1px solid rgba(231,228,241,.13);
+ color:#e9e6f0;
+}
+.stage.active,.filter-chip.active,.mode-switch button.active,
+.mobile-overview-mode button.active,.tab-pill.active,
+.filter-button.active{
+ background:linear-gradient(135deg,#e8e0ff,#bcaaf5)!important;
+ border-color:rgba(232,224,255,.65)!important;
+ color:#17131f!important;
+ box-shadow:0 5px 18px rgba(157,132,224,.18)!important;
+}
+.primary-button,.button-primary,.submit-button{
+ background:linear-gradient(135deg,#e7e0ff,#bcaaf5)!important;
+ border:1px solid rgba(238,231,255,.62)!important;
+ color:#17131f!important;
+ box-shadow:0 8px 22px rgba(157,132,224,.16)!important;
+}
+button{ -webkit-tap-highlight-color:transparent }
+button:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
+input::placeholder,textarea::placeholder{color:#85828f}
+hr,.divider{border-color:rgba(231,228,241,.10)}
+/* Graphs and metric accents use soft lilac instead of the old blue */
+.match-number,.rank,.analytics-leader>strong,.overview-bar-track i,
+.analytics-panel .liquid-panel-heading i,.notification-icon,
+.player-metrics b,.liquid-panel-heading span,.liquid-filter-row b{
+ color:var(--og-accent)!important;
+}
+.overview-bar-track i,.analytics-leader>div i{
+ background:linear-gradient(90deg,#9f8bdc,#e5ddff)!important;
+ box-shadow:0 0 12px rgba(196,181,253,.2)!important;
+}
+.analytics-panel .liquid-panel-heading i,.notification-icon{
+ background:rgba(196,181,253,.11)!important;
+ border-color:rgba(196,181,253,.2)!important;
+}
+.empty,.loading,.error-banner{border-radius:16px}
+.modal,.modal-content,.dialog,.sheet{
+ background:linear-gradient(145deg,#24252d,#111217)!important;
+ border:1px solid rgba(231,228,241,.15)!important;
+ box-shadow:0 24px 80px rgba(0,0,0,.62)!important;
+ color:var(--og-text);
+}
+/* Navigation: a sculpted glass tray with a recessed active capsule */
+.bottom-nav{
+ overflow:visible;
+ height:76px;
+ padding:7px;
+ gap:6px;
+ border-radius:30px;
+ background:linear-gradient(145deg,rgba(48,49,58,.88),rgba(12,13,17,.94))!important;
+ border:1px solid rgba(242,239,250,.2)!important;
+ box-shadow:0 22px 60px rgba(0,0,0,.64),inset 0 1px rgba(255,255,255,.19),inset 0 -1px rgba(0,0,0,.5)!important;
+ backdrop-filter:blur(34px) saturate(145%);
+ -webkit-backdrop-filter:blur(34px) saturate(145%);
+}
+.nav-tabs{overflow:visible;touch-action:pan-y}
+.nav-liquid-indicator{
+ top:3px;bottom:3px;border-radius:24px;
+ background:linear-gradient(145deg,rgba(245,241,255,.22),rgba(196,181,253,.13) 55%,rgba(255,255,255,.07))!important;
+ border:1px solid rgba(239,232,255,.35)!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.3),inset 0 -2px 4px rgba(0,0,0,.2),0 5px 15px rgba(0,0,0,.3)!important;
+ transition:transform .32s cubic-bezier(.22,.78,.25,1),top .2s ease,bottom .2s ease,box-shadow .2s ease!important;
+}
+.nav-liquid-indicator:before{
+ background:linear-gradient(145deg,rgba(255,255,255,.24),rgba(255,255,255,.025) 58%,rgba(196,181,253,.08))!important;
+}
+.nav-tabs.dragging .nav-liquid-indicator{
+ top:-8px;bottom:-8px;
+ transform:translateX(var(--active-shift,0%)) scaleX(var(--nav-stretch,1)) scaleY(1.25);
+ box-shadow:0 10px 26px rgba(0,0,0,.4),0 0 24px rgba(221,211,255,.18),inset 0 1px 2px rgba(255,255,255,.52)!important;
+ filter:brightness(1.13);
+ transition:none!important;
+}
+.nav-item{color:#a6a3af}
+.nav-item.active{color:#fff}
+.nav-item.active svg{filter:drop-shadow(0 1px 5px rgba(230,221,255,.24))!important}
+.nav-item:active{transform:none}
+.refresh{color:#e9e4f6}
+@media(max-width:520px){
+ .bottom-nav{height:74px;border-radius:28px}
+}
+@media(prefers-reduced-motion:reduce){
+ .nav-liquid-indicator{transition:none!important}
+}
