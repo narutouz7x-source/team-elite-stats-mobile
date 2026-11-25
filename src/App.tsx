@@ -262,7 +262,7 @@ export function App() {
             onPointerDown={event=>event.stopPropagation()}
             onClick={()=>setClipActionsOpen(value=>!value)}><Plus size={25} strokeWidth={2.4}/></button>
           <span className="nav-create-label">CLIPS</span>
-          {clipActionsOpen&&<div className="nav-clip-menu" role="menu">
+          {clipActionsOpen&&<div className="nav-clip-menu" role="menu" onPointerDown={event=>event.stopPropagation()}>
             <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false)}}><Play size={15}/><span><b>Browse clips</b><small>Watch community highlights</small></span></button>
             <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false);setClipMessage('');setClipSubmitOpen(true)}}><Plus size={15}/><span><b>Submit a clip</b><small>Add a new highlight</small></span></button>
           </div>}
