@@ -1360,9 +1360,9 @@ main{padding-left:0!important;padding-right:0!important}
  transition:transform .34s cubic-bezier(.2,.82,.22,1),border-radius .24s ease,box-shadow .24s ease!important;
 }
 .nav-tabs.dragging .nav-liquid-indicator{
- top:50%!important;bottom:auto!important;height:52px!important;width:52px!important;
+ top:50%!important;bottom:auto!important;height:52px!important;width:20%!important;aspect-ratio:1/1!important;
  border-radius:50%!important;
- transform:translateX(calc(var(--active-shift,0%) + (10% - 26px))) translateY(-50%) scaleX(var(--nav-stretch,1)) scaleY(1.24)!important;
+ transform:translateX(var(--active-shift,0%)) translateY(-50%) scaleX(var(--nav-stretch,1)) scaleY(1.24)!important;
  transform-origin:center!important;transition:none!important;
 }
 .nav-tabs.clips-active .nav-liquid-indicator{opacity:0!important}
