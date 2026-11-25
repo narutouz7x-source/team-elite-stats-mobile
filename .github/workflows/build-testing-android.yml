@@ -77,7 +77,8 @@ jobs:
           app.write_text(text)
           PY
 
-      # Home-screen widget sources remain in the repository but are not installed in this APK.
+      # Install native home-screen widgets into the generated Capacitor Android project.
+      - run: python3 scripts/install_widgets.py
 
       # Testing builds use a separate package ID so they can coexist with the public app.
       # We intentionally do not apply the Google Services Gradle plugin here because the

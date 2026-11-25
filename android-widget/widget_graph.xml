@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/graph_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_glass"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/og_elite_widget_logo"
+            android:scaleType="centerCrop" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="7dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/graph_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="KILLS PROGRESSION"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1" />
+            <TextView
+                android:id="@+id/graph_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Loading tournament…"
+                android:textColor="#AEB4BE"
+                android:textSize="8sp"
+                android:maxLines="1" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/graph_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FF9D00"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/graph_chart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:scaleType="fitXY"
+        android:contentDescription="Team kills progression by match" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView
+            android:id="@+id/graph_avg"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="AVG —"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/graph_peak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PEAK —"
+            android:textColor="#FFB45C"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/graph_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="9dp"
+            android:text="UPDATED"
+            android:textColor="#858B95"
+            android:textSize="7sp" />
+    </LinearLayout>
+</LinearLayout>
