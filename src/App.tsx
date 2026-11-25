@@ -212,6 +212,7 @@ export function App() {
           <article><small>MATCHES PLAYED</small><strong>{visibleMatches.length}</strong><span>{selectedStageName || 'RECORDED MATCHES'}</span></article>
           <article className="accent"><small>ROSTER</small><strong>{players.length}</strong><span>ACTIVE PLAYERS</span></article>
         </section>
+        <HomePerformanceGraphs matches={visibleMatches} players={players}/>
         <section className="mobile-overview-content">
           <div className="mobile-overview-panel mobile-overview-results">
             <div className="mobile-overview-panel-head"><div><span>LATEST RESULTS</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>VIEW HISTORY →</button></div>
@@ -232,7 +233,6 @@ export function App() {
             })}{players.length===0&&<EmptyState text="No roster data available yet."/>}</div>
           </div>
         </section>
-        <HomePerformanceGraphs matches={visibleMatches} players={players}/>
       </>}
 
       {tab === 'matches' && <><PageHeading title="Match History" subtitle="Choose a tournament to explore its recorded matches."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>{setSelectedCategory('official');setSelectedHistoryTournamentId(null);}}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>{setSelectedCategory('scrim');setSelectedHistoryTournamentId(null);}}>SCRIMS</button></div>{selectedHistoryTournament ? <><section className="history-selected-head"><button className="history-back" onClick={()=>setSelectedHistoryTournamentId(null)}>← ALL TOURNAMENTS</button><div><span>TOURNAMENT HISTORY</span><h2>{selectedHistoryTournament.name}</h2><small>{selectedHistoryTournament.status.toUpperCase()} · {categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).length} MATCHES</small></div></section><StagePicker stages={historyStages} selected={historyStage} onSelect={setHistoryStage}/><MatchList matches={categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).filter(m=>historyStage==='overall'||m.weekId===historyStage).slice().sort((a,b)=>b.timestamp-a.timestamp)} onView={handleViewMatch}/></> : <TournamentHistoryList tournaments={tournaments.filter(t=>(t.category||'official')===selectedCategory)} matches={matches.filter(m=>(m.category||tournaments.find(t=>t.id===m.tournamentId)?.category||'official')===selectedCategory)} onSelect={setSelectedHistoryTournamentId}/>}</>}
