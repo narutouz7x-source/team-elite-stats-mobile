@@ -1193,3 +1193,39 @@ main>*{min-width:0}
  .clip-submit-modal form{width:min(440px,100%)!important;padding:20px!important;border-radius:23px!important;max-height:86dvh!important}
 }
 @media(prefers-reduced-motion:reduce){.clip-submit-modal form{animation:none!important}}
+
+
+/* Layout refinement: single-column roster, tighter canvas and fixed tournament hero */
+.app-shell{padding-left:4px!important;padding-right:4px!important}
+main{padding-left:0!important;padding-right:0!important}
+.topbar{padding-left:4px!important;padding-right:4px!important;gap:10px}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.topbar-refresh{
+ flex:0 0 38px!important;width:38px!important;height:38px!important;
+ border-radius:13px!important;background:rgba(255,255,255,.065)!important;
+ border:1px solid rgba(235,232,243,.14)!important;color:#e9e6f0!important;
+ display:grid!important;place-items:center!important;
+}
+.mobile-overview-hero{
+ width:100%!important;height:218px!important;min-height:218px!important;
+ max-height:218px!important;box-sizing:border-box!important;
+}
+.mobile-overview-hero .overview-hero-copy{max-width:74%!important}
+.mobile-overview-hero .hero-chip-row{display:none!important}
+.mobile-player-grid{
+ grid-template-columns:minmax(0,1fr)!important;
+ gap:14px!important;width:100%!important;
+}
+.mobile-public-player{width:100%!important;min-width:0!important}
+@media(max-width:520px){
+ .app-shell{padding-left:4px!important;padding-right:4px!important}
+ .topbar{padding-left:4px!important;padding-right:4px!important}
+ .mobile-player-grid{grid-template-columns:minmax(0,1fr)!important;gap:13px!important}
+ .mobile-public-player-image{height:clamp(280px,92vw,390px)!important}
+ .mobile-overview-hero{height:210px!important;min-height:210px!important;max-height:210px!important;padding:17px 14px!important;margin:10px 0 16px!important}
+ .overview-hero-copy{max-width:76%!important}
+}
+@media(max-width:360px){
+ .mobile-overview-hero{height:202px!important;min-height:202px!important;max-height:202px!important}
+ .mobile-public-player-image{height:280px!important}
+}
