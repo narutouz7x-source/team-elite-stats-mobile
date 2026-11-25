@@ -965,3 +965,122 @@ hr,.divider{border-color:rgba(231,228,241,.10)}
 }
 .nav-liquid-indicator{width:20%!important}
 .nav-tabs{touch-action:pan-y}
+
+
+/* =========================================================
+   FINAL GLOBAL PALETTE PASS — ALL MOBILE APP SURFACES
+   Obsidian / graphite / pearl / restrained pastel lavender.
+   This intentionally overrides legacy page-level blue/orange rules.
+   ========================================================= */
+:root{
+ --og-bg:#090a0e!important;
+ --og-bg-2:#111218!important;
+ --og-panel:rgba(29,30,37,.92)!important;
+ --og-panel-strong:rgba(37,38,46,.97)!important;
+ --og-line:rgba(235,232,243,.13)!important;
+ --og-text:#f4f2f7!important;
+ --og-muted:#aaa7b2!important;
+ --og-accent:#c9bdf5!important;
+ --og-accent-soft:#e9e3ff!important;
+ --og-accent-wash:rgba(201,189,245,.12)!important;
+ --og-glow:rgba(201,189,245,.10)!important;
+ --og-blue:#c9bdf5!important;
+ --og-blue-bright:#e9e3ff!important;
+}
+html,body,#root,.app-shell{background:#090a0e!important;color:#f4f2f7!important}
+body:after{background:radial-gradient(circle,rgba(201,189,245,.075),transparent 67%)!important}
+.topbar{background:rgba(10,11,15,.82)!important;border-bottom-color:rgba(235,232,243,.11)!important}
+.brand-mark{background:linear-gradient(145deg,#e9e3ff,#9e93c6)!important;box-shadow:0 0 24px rgba(201,189,245,.12)!important}
+.brand span,.eyebrow,.section-title,.page-heading>span,.hero-eyebrow{color:#aaa6b5!important}
+.hero-card,.page-heading,.mobile-players-intro,.mobile-content-hero{border-color:rgba(235,232,243,.12)!important}
+.hero-card:after,.hero-orbit-art,.orbit-ring{border-color:rgba(201,189,245,.18)!important;background:radial-gradient(circle,rgba(201,189,245,.09),transparent 68%)!important;box-shadow:inset 0 0 38px rgba(201,189,245,.035)!important}
+.hero-card p,.page-heading p,.mobile-content-hero p,.mobile-creator-body p{color:#aaa7b2!important}
+.hero-chip,.hero-chip-row>span{background:rgba(201,189,245,.09)!important;border-color:rgba(201,189,245,.2)!important;color:#e9e3ff!important}
+.primary-button,.clip-submit-button,.app-update-now,.mobile-empty-feature button,.copy-match{
+ color:#17151d!important;
+ background:linear-gradient(135deg,#eee9ff,#b9addf)!important;
+ border:1px solid rgba(244,240,255,.65)!important;
+ box-shadow:0 8px 24px rgba(153,137,202,.16),inset 0 1px rgba(255,255,255,.45)!important;
+}
+.campaign-card,.stats-grid>div,.player-card,.match-card,.notification,
+.mobile-overview-stats article,.mobile-overview-panel,.mobile-public-player,
+.mobile-full-clip,.mobile-creator-card,.history-tournament-card,
+.history-selected-head,.home-graph-card,.clip-card,.crew-card,
+.match-modal,.app-update-card,.clip-submit-modal form,
+.detail-grid>div,.app-update-notes,.mobile-overview-match,
+.mobile-overview-match-list,.mobile-overview-results,.mobile-overview-bars,
+.mobile-player-grid article,.mobile-public-player-stats,
+.mobile-clip-media,.mobile-creator-body,.mobile-creator-links a{
+ background:linear-gradient(145deg,rgba(36,37,45,.96),rgba(16,17,22,.98))!important;
+ border-color:rgba(235,232,243,.12)!important;
+ color:#f4f2f7!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.045),0 12px 30px rgba(0,0,0,.22)!important;
+}
+.campaign-card small,.mobile-overview-stages>span,.mobile-overview-panel-head span,
+.mobile-content-hero span,.mobile-creator-image>small,.modal-kicker,
+.app-update-card>span,.clip-submit-head>div:last-child>span,
+.mobile-clip-info>small,.mobile-clip-info a,
+.home-performance-heading>div>span,.home-graph-title>div>span{
+ color:#d3c9fa!important;
+}
+.campaign-card p,.stats-grid>div span,.player-card span,.match-info span,
+.match-result span,.notification p,.notification time,.mobile-public-player-stats span,
+.mobile-overview-match span,.mobile-overview-match small,.mobile-creator-body p,
+.mobile-clip-info p,.home-performance-heading p,.home-graph-labels span{
+ color:#aaa7b2!important;
+}
+.rank,.match-number,.match-result strong,.stats-grid svg,
+.modal-player-list b,.app-update-icon,.clip-submit-icon,
+.notification-icon,.player-metrics b,.mobile-public-player-stats b{
+ color:#d3c9fa!important;
+}
+.rank,.stats-grid svg{filter:drop-shadow(0 0 8px rgba(201,189,245,.12))}
+.stage,.stage-scroll button,.stats-mode-switch,.mobile-overview-mode,
+.matches-mode-switch,.filter-chip,.mode-switch,.history-back,
+.icon-button,.refresh,.app-update-later,.modal-close,
+.clip-modal-close,.home-player-select select,
+input,textarea,select{
+ background:rgba(255,255,255,.055)!important;
+ border:1px solid rgba(235,232,243,.14)!important;
+ color:#e9e6f0!important;
+}
+.stage.active,.stats-mode-switch button.active,.mobile-overview-mode button.active,
+.matches-mode-switch button.active,.filter-chip.active,.mode-switch button.active,
+.history-back:active{
+ background:linear-gradient(135deg,#eee9ff,#b9addf)!important;
+ border-color:rgba(244,240,255,.72)!important;
+ color:#191620!important;
+ box-shadow:0 5px 18px rgba(153,137,202,.17),inset 0 1px rgba(255,255,255,.42)!important;
+}
+.app-update-icon,.clip-submit-icon,.notification-icon{
+ background:rgba(201,189,245,.12)!important;
+ border:1px solid rgba(201,189,245,.2)!important;
+}
+.mobile-creator-links a:active,.mobile-clip-media>i{
+ color:#eee9ff!important;border-color:rgba(201,189,245,.42)!important;
+ background:rgba(201,189,245,.13)!important;
+}
+.overview-bar-track,.mobile-overview-bars i{background:rgba(255,255,255,.09)!important}
+.overview-bar-track i,.analytics-leader>div i,.mobile-overview-bars i>i{
+ background:linear-gradient(90deg,#a99bd8,#e9e3ff)!important;
+ box-shadow:0 0 12px rgba(201,189,245,.18)!important;
+}
+.mobile-overview-hero span,.mobile-section-kicker{color:#d3c9fa!important}
+.mobile-overview-hero h1,.page-heading h1,.mobile-overview-hero h2{color:#f4f2f7!important}
+.mobile-overview-hero p{color:#aaa7b2!important}
+.mobile-player-grid,.mobile-clips-grid,.mobile-creator-grid{color:#f4f2f7}
+.mobile-public-player-image,.mobile-creator-image,.mobile-creator-fallback{
+ background:linear-gradient(145deg,#292832,#14151b)!important;
+}
+.match-modal,.app-update-card,.clip-submit-modal form,.modal-backdrop,.app-update-backdrop{
+ color:#f4f2f7!important;
+}
+.modal-backdrop,.app-update-backdrop{background:rgba(0,0,0,.72)!important;backdrop-filter:blur(12px)}
+.detail-grid>div,.app-update-notes,.clip-submit-modal input{
+ background:rgba(255,255,255,.045)!important;border-color:rgba(235,232,243,.12)!important;
+}
+input::placeholder,textarea::placeholder{color:#85818e!important}
+.empty,.loading,.error-banner{background:rgba(255,255,255,.035)!important;border-color:rgba(235,232,243,.12)!important;color:#c9c5d1!important}
+button:focus-visible{outline:2px solid #d3c9fa!important;outline-offset:3px}
+a{color:#d3c9fa}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
