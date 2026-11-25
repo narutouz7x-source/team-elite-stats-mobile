@@ -88,8 +88,6 @@ export function App() {
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
 
 
-  // Match results must remain accessible while live AdMob inventory/review is pending.
-  // Rewarded ads remain available for clips, but never gate match-result access.
   async function handleViewMatch(match: Match) {
     setSelectedMatch(match);
   }
