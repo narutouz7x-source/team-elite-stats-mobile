@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
+import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, Plus, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
@@ -75,6 +75,7 @@ export function App() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [copied, setCopied] = useState(false);
   const [clipSubmitOpen, setClipSubmitOpen] = useState(false);
+  const [clipActionsOpen, setClipActionsOpen] = useState(false);
   const [clipBusy, setClipBusy] = useState(false);
   const [clipMessage, setClipMessage] = useState('');
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
@@ -246,7 +247,30 @@ export function App() {
       {tab === 'alerts' && <><PageHeading title="Notifications" subtitle="Match updates, content drops and admin announcements."/><div className="notification-list">{notifications.length===0&&<EmptyState text="No notifications yet."/>}{notifications.map(item=><article className="notification" key={item.id}><div className="notification-icon"><Bell size={17}/></div><div><strong>{item.title}</strong><p>{item.message||item.type}</p><time>{relativeTime(item.createdAt)}</time></div></article>)}</div></>}
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
-    <nav className="bottom-nav" aria-label="Main navigation"><div className={navDragging?'nav-tabs dragging':'nav-tabs'} onPointerDown={event=>{navPointerStart.current=event.clientX;navLastX.current=event.clientX;navDragActive.current=true;setNavDragging(false);setNavStretch(1);}} onPointerMove={event=>{if(!navDragActive.current||navPointerStart.current===null)return;const totalDelta=event.clientX-navPointerStart.current;if(!navDragging&&Math.abs(totalDelta)<7)return;if(!navDragging){setNavDragging(true);event.currentTarget.setPointerCapture(event.pointerId);}const rect=event.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(rect.width,event.clientX-rect.left));const next=Math.max(0,Math.min(4,(x/rect.width)*5-.5));const delta=navLastX.current===null?0:event.clientX-navLastX.current;navLastX.current=event.clientX;setNavPosition(next);setNavStretch(Math.min(1.3,1+Math.abs(delta)*.014));}} onPointerUp={event=>{if(!navDragActive.current)return;const wasDragged=navDragging;navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);if(wasDragged){const rect=event.currentTarget.getBoundingClientRect();const index=Math.max(0,Math.min(4,Math.round(((event.clientX-rect.left)/rect.width)*5-.5)));setNavPosition(index);setTab((["home","matches","team","clips","crew"] as Tab[])[index]);}}} onPointerCancel={()=>{navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);setNavPosition(["home","matches","team","clips","crew"].indexOf(tab));}} style={{"--active-shift":(navPosition*100)+"%","--nav-stretch":navStretch} as React.CSSProperties}><span className="nav-liquid-indicator" aria-hidden="true"/><NavButton active={tab==='home'} label="Home" icon={<Home size={18}/>} onClick={()=>{setNavPosition(0);setTab('home')}}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={18}/>} onClick={()=>{setNavPosition(1);setTab('matches')}}/><NavButton active={tab==='team'} label="Team" icon={<Users size={18}/>} onClick={()=>{setNavPosition(2);setTab('team')}}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={18}/>} onClick={()=>{setNavPosition(3);setTab('clips')}}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={18}/>} onClick={()=>{setNavPosition(4);setTab('crew')}}/></div></nav>
+    <nav className="bottom-nav" aria-label="Main navigation">
+      <div className={`nav-tabs${navDragging?' dragging':''}${tab==='clips'?' clips-active':''}`}
+        onPointerDown={event=>{navPointerStart.current=event.clientX;navLastX.current=event.clientX;navDragActive.current=true;setNavDragging(false);setNavStretch(1);}}
+        onPointerMove={event=>{if(!navDragActive.current||navPointerStart.current===null)return;const totalDelta=event.clientX-navPointerStart.current;if(!navDragging&&Math.abs(totalDelta)<7)return;if(!navDragging){setNavDragging(true);event.currentTarget.setPointerCapture(event.pointerId);}const rect=event.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(rect.width,event.clientX-rect.left));const next=Math.max(0,Math.min(4,Math.floor((x/rect.width)*5)));const delta=navLastX.current===null?0:event.clientX-navLastX.current;navLastX.current=event.clientX;setNavPosition(next);setNavStretch(Math.min(1.3,1+Math.abs(delta)*.014));}}
+        onPointerUp={event=>{if(!navDragActive.current)return;const wasDragged=navDragging;navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);if(wasDragged){const rect=event.currentTarget.getBoundingClientRect();const index=Math.max(0,Math.min(4,Math.floor(((event.clientX-rect.left)/rect.width)*5)));const nextTab=(["home","matches","clips","team","crew"] as Tab[])[index];setNavPosition(index);setTab(nextTab);setClipActionsOpen(false);}}}
+        onPointerCancel={()=>{navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);setNavPosition(({"home":0,"matches":1,"clips":2,"team":3,"crew":4} as Record<string,number>)[tab]??0);}}
+        style={{"--active-shift":(navPosition*100)+"%","--nav-stretch":navStretch} as React.CSSProperties}>
+        <span className="nav-liquid-indicator" aria-hidden="true"/>
+        <NavButton active={tab==='home'} label="Home" icon={<Home size={18}/>} onClick={()=>{setNavPosition(0);setTab('home');setClipActionsOpen(false)}}/>
+        <NavButton active={tab==='matches'} label="Matches" icon={<Swords size={18}/>} onClick={()=>{setNavPosition(1);setTab('matches');setClipActionsOpen(false)}}/>
+        <div className="nav-center-slot">
+          <button type="button" className="nav-create-button" aria-label="Clips actions" aria-expanded={clipActionsOpen}
+            onPointerDown={event=>event.stopPropagation()}
+            onClick={()=>setClipActionsOpen(value=>!value)}><Plus size={25} strokeWidth={2.4}/></button>
+          <span className="nav-create-label">CLIPS</span>
+          {clipActionsOpen&&<div className="nav-clip-menu" role="menu">
+            <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false)}}><Play size={15}/><span><b>Browse clips</b><small>Watch community highlights</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false);setClipMessage('');setClipSubmitOpen(true)}}><Plus size={15}/><span><b>Submit a clip</b><small>Add a new highlight</small></span></button>
+          </div>}
+        </div>
+        <NavButton active={tab==='team'} label="Team" icon={<Users size={18}/>} onClick={()=>{setNavPosition(3);setTab('team');setClipActionsOpen(false)}}/>
+        <NavButton active={tab==='crew'} label="Crew" icon={<Users size={18}/>} onClick={()=>{setNavPosition(4);setTab('crew');setClipActionsOpen(false)}}/>
+      </div>
+    </nav>
     {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS • UPDATE</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button></div></section></div>}
     <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
