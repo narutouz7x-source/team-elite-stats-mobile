@@ -1120,3 +1120,76 @@ main>*{min-width:0}
  .mobile-player-grid{gap:7px!important}
  .mobile-public-player-image{height:225px!important}
 }
+
+
+/* Clip submission — centered floating glass dialog, never a bottom drawer */
+.clip-submit-modal{
+ position:fixed!important;
+ inset:0!important;
+ z-index:1200!important;
+ display:grid!important;
+ place-items:center!important;
+ padding:20px 14px!important;
+ padding-top:max(20px,env(safe-area-inset-top))!important;
+ padding-bottom:max(20px,env(safe-area-inset-bottom))!important;
+ background:rgba(5,6,10,.72)!important;
+ backdrop-filter:blur(20px) saturate(125%)!important;
+ -webkit-backdrop-filter:blur(20px) saturate(125%)!important;
+ overflow-y:auto!important;
+}
+.clip-submit-modal form{
+ position:relative!important;
+ width:min(440px,100%)!important;
+ max-height:min(84dvh,720px)!important;
+ overflow-y:auto!important;
+ overscroll-behavior:contain;
+ margin:auto!important;
+ padding:22px!important;
+ border-radius:26px!important;
+ background:linear-gradient(145deg,rgba(42,42,52,.98),rgba(15,16,22,.99))!important;
+ border:1px solid rgba(235,232,243,.2)!important;
+ box-shadow:0 30px 100px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.12)!important;
+ color:#f4f2f7!important;
+ animation:clipCardIn .24s cubic-bezier(.2,.8,.2,1) both;
+}
+.clip-submit-head{align-items:center;padding-right:42px!important}
+.clip-submit-head h2{color:#f4f2f7!important}
+.clip-submit-subtitle{color:#aaa7b2!important}
+.clip-submit-modal label{color:#d2cfda!important}
+.clip-submit-modal label em{color:#c9bdf5!important;border-color:rgba(201,189,245,.22)!important}
+.clip-submit-modal input{
+ width:100%!important;
+ box-sizing:border-box!important;
+ background:rgba(255,255,255,.055)!important;
+ border:1px solid rgba(235,232,243,.14)!important;
+ color:#f4f2f7!important;
+ border-radius:13px!important;
+}
+.clip-submit-modal input:focus{
+ border-color:rgba(201,189,245,.55)!important;
+ box-shadow:0 0 0 3px rgba(201,189,245,.09)!important;
+}
+.clip-modal-close{
+ position:absolute!important;
+ top:16px!important;
+ right:16px!important;
+ width:34px!important;
+ height:34px!important;
+ border-radius:50%!important;
+ display:grid!important;
+ place-items:center!important;
+ background:rgba(255,255,255,.08)!important;
+ border:1px solid rgba(235,232,243,.16)!important;
+ color:#f4f2f7!important;
+}
+.clip-submit-icon{background:rgba(201,189,245,.12)!important;border-color:rgba(201,189,245,.22)!important;color:#e9e3ff!important}
+.clip-message{background:rgba(201,189,245,.09)!important;border-color:rgba(201,189,245,.2)!important;color:#e9e3ff!important}
+@keyframes clipCardIn{
+ from{opacity:0;transform:translateY(12px) scale(.97)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-width:520px){
+ .clip-submit-modal{padding:14px!important}
+ .clip-submit-modal form{width:min(440px,100%)!important;padding:20px!important;border-radius:23px!important;max-height:86dvh!important}
+}
+@media(prefers-reduced-motion:reduce){.clip-submit-modal form{animation:none!important}}
