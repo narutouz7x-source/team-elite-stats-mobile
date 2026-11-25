@@ -82,6 +82,9 @@ export function App() {
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
   const [selectedStage, setSelectedStage] = useState<string>('overall');
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
+  const [selectedHistoryTournamentId, setSelectedHistoryTournamentId] = useState<string | null>(null);
+  const [historyStages, setHistoryStages] = useState<Stage[]>([]);
+  const [historyStage, setHistoryStage] = useState('overall');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
@@ -194,6 +197,13 @@ export function App() {
   }, []);
 
   useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+
+  const selectedHistoryTournament = tournaments.find(t => t.id === selectedHistoryTournamentId) ?? null;
+  useEffect(() => {
+    if (!selectedHistoryTournamentId) { setHistoryStages([]); setHistoryStage('overall'); return; }
+    setHistoryStage('overall');
+    api.stages(selectedHistoryTournamentId).then(setHistoryStages).catch(() => setHistoryStages([]));
+  }, [selectedHistoryTournamentId]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
   const tournamentMatches = useMemo(() => categoryMatches
@@ -254,7 +264,7 @@ export function App() {
 
       {tab === 'stats' && <AnalyticsPanel matches={visibleMatches} players={players}/>}
 
-      {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}
+      {tab === 'matches' && <><PageHeading title="Match History" subtitle="Choose a tournament to explore its recorded matches."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>{setSelectedCategory('official');setSelectedHistoryTournamentId(null);}}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>{setSelectedCategory('scrim');setSelectedHistoryTournamentId(null);}}>SCRIMS</button></div>{selectedHistoryTournament ? <><section className="history-selected-head"><button className="history-back" onClick={()=>setSelectedHistoryTournamentId(null)}>← ALL TOURNAMENTS</button><div><span>TOURNAMENT HISTORY</span><h2>{selectedHistoryTournament.name}</h2><small>{selectedHistoryTournament.status.toUpperCase()} · {categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).length} MATCHES</small></div></section><StagePicker stages={historyStages} selected={historyStage} onSelect={setHistoryStage}/><MatchList matches={categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).filter(m=>historyStage==='overall'||m.weekId===historyStage).slice().sort((a,b)=>b.timestamp-a.timestamp)} onView={handleViewMatch}/></> : <TournamentHistoryList tournaments={tournaments.filter(t=>(t.category||'official')===selectedCategory)} matches={matches.filter(m=>(m.category||tournaments.find(t=>t.id===m.tournamentId)?.category||'official')===selectedCategory)} onSelect={setSelectedHistoryTournamentId}/>}</>}
 
       {tab === 'team' && <><section className="mobile-players-intro"><div><span className="mobile-section-kicker">OG ELITE / FREE FIRE MAX</span><h1>Meet the <em>squad.</em></h1><p>Player profiles, roles and live competitive output managed from the OG ELITE control center.</p></div><div className="mobile-roster-count"><strong>{String(players.length).padStart(2,'0')}</strong><span>ACTIVE<br/>PLAYERS</span></div></section><div className="mobile-player-grid">{players.map((player,index)=>{const stat=playerStats[player.id];const kills=stat?.kills??0;const played=stat?.played??0;const avg=played?(kills/played).toFixed(2):'0.00';return <article className="mobile-public-player" key={player.id}><div className="mobile-public-player-image" style={player.imageUrl?{backgroundImage:'url('+player.imageUrl+')'}:undefined}><div className="mobile-public-player-identity"><strong>{player.name}</strong><small>{player.role}</small></div>{!player.imageUrl&&<span>{player.name.slice(0,2)}</span>}<b>#{String(index+1).padStart(2,'0')}</b><i>ACTIVE</i></div><div className="mobile-public-player-stats"><div><strong>{kills}</strong><span>KILLS</span></div><div><strong>{played}</strong><span>MATCHES</span></div><div><strong>{avg}</strong><span>AVG</span></div></div></article>})}</div>{players.length===0&&<div className="empty">No player records available yet.</div>}</>}
 
