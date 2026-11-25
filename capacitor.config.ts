@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     StatusBar: {
-      style: 'DARK',
+      style: 'LIGHT',
+      backgroundColor: '#1E2226',
       overlaysWebView: false
     },
     FirebaseMessaging: {
