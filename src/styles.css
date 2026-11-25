@@ -1571,3 +1571,42 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .history-tournament-copy strong,.history-tournament-meta b{color:var(--og-glacier)!important}
 .history-tournament-mark{background:var(--og-surface-raised)!important;border-color:var(--og-border)!important;box-shadow:none!important}
 .notification strong,.mobile-creator-name h2,.mobile-clip-info h2{color:var(--og-glacier)!important}
+
+
+/* Feedback pass: orange interaction language, clean media, and unboxed typography */
+button,a,select{accent-color:var(--og-accent)}
+button:not(.primary-button):not(.copy-match):not(.clip-submit-button):not(.app-update-now):not(.nav-create-button){
+  color:var(--og-accent)!important;
+  border-color:rgba(255,90,31,.42)!important;
+}
+button:not(.primary-button):not(.copy-match):not(.clip-submit-button):not(.app-update-now):not(.nav-create-button):not(.nav-item){
+  background:var(--og-accent-wash)!important;
+}
+a,.creator-social,.mobile-creator-links a{color:var(--og-accent)!important}
+button:active,a:active{border-color:var(--og-accent)!important}
+button:focus-visible,a:focus-visible,select:focus-visible{outline-color:var(--og-accent)!important}
+.nav-item{color:var(--og-accent)!important}
+.nav-item.active{color:var(--og-bg)!important;background:var(--og-accent)!important}
+.nav-item.active svg{color:var(--og-bg)!important}
+.nav-liquid-indicator{background:rgba(255,90,31,.2)!important;border-color:rgba(255,90,31,.65)!important}
+.topbar-refresh,.icon-button{color:var(--og-accent)!important;border-color:rgba(255,90,31,.45)!important}
+.mobile-overview-mode button,.stats-mode-switch button,.stage{border-color:rgba(255,90,31,.34)!important}
+.mobile-overview-mode button.active,.stats-mode-switch button.active,.stage.active{
+  background:var(--og-accent)!important;color:var(--og-bg)!important;border-color:var(--og-accent)!important
+}
+
+/* Player and creator media stay unobstructed; only real fallback initials render */
+.mobile-public-player-image:before,.mobile-creator-image:after{display:none!important;background:none!important}
+.mobile-player-fallback{display:grid}
+.mobile-public-player-identity,.mobile-public-player-identity strong,.mobile-public-player-identity small,
+.mobile-public-player-image>b,.mobile-public-player-image>i,
+.mobile-creator-name,.mobile-creator-name h2,.mobile-creator-name span,
+.mobile-clip-info h2,.mobile-clip-info p,.mobile-overview-panel-head span,
+.hero-eyebrow,.mobile-section-kicker,.mobile-content-hero span{
+  background:transparent!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+}
+.mobile-public-player-image>i{background:transparent!important;border-color:var(--og-accent)!important;color:var(--og-accent)!important}
+.mobile-public-player-image>b{background:transparent!important;color:var(--og-accent)!important}
+.mobile-public-player-stats{background:transparent!important}
