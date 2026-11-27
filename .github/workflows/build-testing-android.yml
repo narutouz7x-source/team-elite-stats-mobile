@@ -2,6 +2,9 @@ name: Build OG ELITE Testing APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/hybrid-mobile-redesign
 
 permissions:
   contents: read
