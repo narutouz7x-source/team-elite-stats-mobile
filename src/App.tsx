@@ -48,7 +48,7 @@ const clipImageUrl = (clip: Clip) => {
 };
 
 const relativeTime = (timestamp?: number) => {
-  if (!timestamp) return 'â';
+  if (!timestamp) return '—';
   const diff = Math.max(0, Date.now() - timestamp);
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return 'just now';
@@ -364,7 +364,7 @@ export function App() {
       </>}
 
       {error && <div className="error-banner" role="alert"><span>{error}</span><button onClick={() => void load()}>Try again</button></div>}
-      {loading && <div className="loading" role="status">Syncing live dataâ¦</div>}
+      {loading && <div className="loading" role="status">Syncing live data…</div>}
       <footer className="app-footer">Powered by Lumina HQ</footer>
     </main>
 
@@ -551,13 +551,13 @@ function TournamentHistoryList({ tournaments, matches, onSelect }: { tournaments
       return <button type="button" className={'tournament-card' + (tournament.active ? ' current' : '')} key={tournament.id} onClick={() => onSelect(tournament.id)}>
         <div className="tournament-top">
           <span className="tournament-mark"><Trophy size={20}/></span>
-          <span className="tournament-copy"><strong>{tournament.name}</strong><small>{tournament.active ? 'Current tournament' : statusLabel(tournament.status)}{latest ? ' Â· ' + relativeTime(latest) : ''}</small></span>
+          <span className="tournament-copy"><strong>{tournament.name}</strong><small>{tournament.active ? 'Current tournament' : statusLabel(tournament.status)}{latest ? ' · ' + relativeTime(latest) : ''}</small></span>
           <ChevronRight className="tournament-arrow" size={18}/>
         </div>
         <div className="tournament-figs">
           <div><b>{rows.length}</b><small>Matches</small></div>
           <div><b>{points}</b><small>Points</small></div>
-          <div><b>{best ? '#' + best : 'â'}</b><small>Best place</small></div>
+          <div><b>{best ? '#' + best : '—'}</b><small>Best place</small></div>
         </div>
       </button>;
     })}
@@ -568,7 +568,7 @@ function MatchCard({ match, onView }: { match: Match; onView: (match: Match) => 
   const tone = match.position === 1 ? 'first' : match.position > 0 && match.position <= 3 ? 'podium' : 'rest';
   return <button type="button" className="match-card" onClick={() => void onView(match)} aria-label={`Open match ${match.matchNumber} details`}>
     <div className={'match-place ' + tone}><small>Place</small><b>#{match.position}</b></div>
-    <div className="match-main"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>M{match.matchNumber} Â· {relativeTime(match.timestamp)}</span></div>
+    <div className="match-main"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>M{match.matchNumber} · {relativeTime(match.timestamp)}</span></div>
     <div className="match-figs"><div><b>{matchKills(match)}</b><small>Kills</small></div><div><b>{match.totalPoints}</b><small>Points</small></div></div>
     <ChevronRight className="match-arrow" size={18}/>
   </button>;
@@ -671,7 +671,7 @@ function ClipsPanel({ clips, onWatchClip, clipSubmitOpen, setClipSubmitOpen, cli
         <label className="field"><span>Your name or username</span><input value={clipForm.submittedBy} onChange={e => setClipForm({ ...clipForm, submittedBy: e.target.value })} placeholder="Your name"/></label>
         <label className="field"><span>Player or creator <em>Optional</em></span><input value={clipForm.creatorName} onChange={e => setClipForm({ ...clipForm, creatorName: e.target.value })} placeholder="Player name"/></label>
         {clipMessage && <div className="clip-message" role="status">{clipMessage}</div>}
-        <button className="btn primary block" disabled={clipBusy}>{clipBusy ? 'Submittingâ¦' : 'Submit for review'}</button>
+        <button className="btn primary block" disabled={clipBusy}>{clipBusy ? 'Submitting…' : 'Submit for review'}</button>
       </form>
     </div>}
   </>;
