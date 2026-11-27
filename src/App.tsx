@@ -46,6 +46,13 @@ const clipImageUrl = (clip: Clip) => {
 };
 
 const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => n + (Number(p.kills) || 0), 0);
+const normalizeCategory = (value?: string): 'official' | 'scrim' => String(value || '').toLowerCase().includes('scrim') ? 'scrim' : 'official';
+const tournamentCategory = (tournament: Tournament, allMatches: Match[]) => {
+  if (tournament.category) return normalizeCategory(tournament.category);
+  const linked = allMatches.filter(match => match.tournamentId === tournament.id && match.category);
+  if (!linked.length) return 'official';
+  return linked.filter(match => normalizeCategory(match.category) === 'scrim').length > linked.length / 2 ? 'scrim' : 'official';
+};
 
 const backgroundOptions = [
   { id: 'default', name: 'Original', src: '' },
@@ -125,22 +132,28 @@ export function App() {
   function markAllNotificationsRead() { setReadNotificationIds(current => new Set([...current, ...notifications.map(item => item.id)])); }
 
   const categoryTournaments = useMemo(() => {
-    const scoped = tournaments.filter(t => (t.category || 'official') === selectedCategory);
-    const seen = new Set<string>();
-    return scoped.filter(t => {
-      const normalizedName = t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
-      if (seen.has(normalizedName)) return false;
-      seen.add(normalizedName);
-      return true;
-    });
-  }, [tournaments, selectedCategory]);
-  const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0] ?? tournaments.find(t => (t.category || 'official') === selectedCategory);
+    const scoped = tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory);
+    const grouped = new Map<string, Tournament[]>();
+    for (const tournament of scoped) {
+      const normalizedName = tournament.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+      const group = grouped.get(normalizedName) || [];
+      group.push(tournament);
+      grouped.set(normalizedName, group);
+    }
+    return [...grouped.values()].map(group => group.slice().sort((a, b) => {
+      if (a.active !== b.active) return Number(b.active) - Number(a.active);
+      const aCount = matches.filter(match => match.tournamentId === a.id).length;
+      const bCount = matches.filter(match => match.tournamentId === b.id).length;
+      return bCount - aCount;
+    })[0]);
+  }, [tournaments, matches, selectedCategory]);
+  const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0];
   const historyTournament = categoryTournaments.find(t => t.id === historyOpenTournamentId);
   const historyTournamentIds = useMemo(() => {
     if (!historyTournament) return [];
     const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
-    return tournaments.filter(t => (t.category || 'official') === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ') === normalizedName).map(t => t.id);
-  }, [historyTournament, tournaments, selectedCategory]);
+    return tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ') === normalizedName).map(t => t.id);
+  }, [historyTournament, tournaments, matches, selectedCategory]);
 
   async function load() {
     setLoading(true); setError('');
@@ -235,11 +248,16 @@ export function App() {
     if (!targetTournament) { setStages([]); return; }
     api.stages(targetTournament.id).then(setStages).catch(() => setStages([]));
   }, [activeTournament?.id, historyTournament?.id]);
-  const categoryMatches = useMemo(() => matches.filter(match => {
-    const linkedTournament = tournaments.find(tournament => tournament.id === match.tournamentId);
-    const authoritativeCategory = linkedTournament ? (linkedTournament.category || 'official') : (match.category || 'official');
-    return authoritativeCategory === selectedCategory;
-  }), [matches, tournaments, selectedCategory]);
+  const categoryMatches = useMemo(() => {
+    const seen = new Set<string>();
+    return matches.filter(match => {
+      if (seen.has(match.id)) return false;
+      seen.add(match.id);
+      const linkedTournament = tournaments.find(tournament => tournament.id === match.tournamentId);
+      const authoritativeCategory = linkedTournament ? tournamentCategory(linkedTournament, matches) : normalizeCategory(match.category);
+      return authoritativeCategory === selectedCategory;
+    });
+  }, [matches, tournaments, selectedCategory]);
 
   const tournamentMatches = useMemo(() => categoryMatches
     .filter(match => !activeTournament || match.tournamentId === activeTournament.id)
@@ -274,7 +292,7 @@ export function App() {
             <span className="tournament-glass-kicker">{activeTournament?.active ? 'CURRENT TOURNAMENT' : 'TOURNAMENT'}</span>
             <h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1>
           </div>
-          <div className={"mobile-overview-mode "+(selectedCategory === 'official' ? 'official-selected' : 'scrim-selected')}><span className="mode-switch-indicator" aria-hidden="true"/><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
+          <div className={"mobile-overview-mode "+(selectedCategory === 'official' ? 'official-selected' : 'scrim-selected')}><span className="mode-switch-indicator" aria-hidden="true"/><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div>
         </section>
         {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
         <section className="mobile-overview-stats">
@@ -318,8 +336,10 @@ export function App() {
             <button type="button" className="history-back-button" onClick={()=>setHistoryOpenTournamentId('')}>‹ <span>ALL TOURNAMENTS</span></button>
             <div className="history-selected-title"><div><span>{selectedCategory === 'official' ? 'OFFICIAL TOURNAMENT' : 'SCRIM TOURNAMENT'}</span><h2>{historyTournament.name}</h2></div><strong>{historyMatches.length} MATCHES</strong></div>
           </div>
-          <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
-          <MatchList matches={selectedStage === 'overall' ? historyMatches : historyMatches.filter(match=>match.weekId===selectedStage)} onView={handleViewMatch}/>
+          <div className="history-match-results">
+            <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
+            <MatchList matches={selectedStage === 'overall' ? historyMatches : historyMatches.filter(match=>match.weekId===selectedStage)} onView={handleViewMatch}/>
+          </div>
         </> : <>
           <section className="history-tournament-section">
             <div className="history-tournament-heading"><span>TOURNAMENTS</span><small>{categoryTournaments.length} available</small></div>
