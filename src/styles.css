@@ -261,3 +261,25 @@ button:focus-visible{outline-color:#ff6a00}
 .dot-active-halo{fill:rgba(255,90,31,.16);transition:cx .2s,cy .2s}
 @media(max-width:380px){.graph-card{padding:13px 10px 8px}.section-head h2{font-size:15px}.graph-title h3{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.chart-area,.chart-line{animation:none}}
+
+
+/* Test-branch background selector: preserves the original layout and theme. */
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.background-picker-trigger{color:#aab3ad}
+body[data-app-background]:not([data-app-background="default"]){background-color:#050706;background-repeat:no-repeat}
+body[data-app-background]:not([data-app-background="default"])::before,
+body[data-app-background]:not([data-app-background="default"])::after{display:none}
+#root{background:transparent}
+.background-picker-backdrop{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);display:flex;align-items:flex-end;justify-content:center;padding:14px}
+.background-picker{width:min(520px,100%);padding:20px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:linear-gradient(145deg,#191b1c,#090a0b);box-shadow:0 24px 90px rgba(0,0,0,.7)}
+.background-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.background-picker-head span{font:800 7px Orbitron;letter-spacing:.16em;color:#ff9b5c}
+.background-picker-head h2{font:800 18px Orbitron;margin:6px 0 0;color:#f4f5f4}
+.background-picker-head>button{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#252729;color:#dce2e5}
+.background-picker-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:min(58vh,480px);overflow-y:auto}
+.background-choice{position:relative;display:grid;gap:8px;padding:8px;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:#111416;color:#dce2e5;font:700 9px Inter}
+.background-choice.active{border-color:#ff6a1f;box-shadow:0 0 0 1px rgba(255,106,31,.22)}
+.background-choice-preview{height:86px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(145deg,#252a2d,#111416);background-size:cover;background-position:center;color:#737d82}
+.background-choice>b{position:absolute;right:13px;top:13px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#ff6a1f;color:#111;font-size:11px}
+.background-picker>p{margin:13px 0 0;color:#7d878d;font:500 8px Inter;line-height:1.5}
+@media(min-width:700px){.background-picker-backdrop{align-items:center}.background-picker-options{grid-template-columns:repeat(3,minmax(0,1fr))}.background-choice-preview{height:110px}}
