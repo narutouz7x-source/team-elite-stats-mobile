@@ -904,3 +904,45 @@ body{background-color:#050706!important}
   place-items:center;
   border:1px solid rgba(221,229,236,.12);
 }
+
+
+/* Tournament history opens as a focused detail screen. */
+.history-detail-heading{margin:10px 0 14px}
+.history-back-button{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 12px;border:1px solid rgba(221,229,236,.18);
+  border-radius:999px;background:rgba(221,229,236,.08);
+  color:#F3F6F8;font:800 9px Inter;letter-spacing:.08em;
+}
+.history-back-button:active{transform:scale(.97)}
+.history-detail-heading .history-selected-title{margin:14px 2px 8px}
+.history-detail-heading .history-selected-title h2{font-size:clamp(20px,5vw,26px)}
+/* One smooth sliding thumb for Official / Scrims, shared by Home and History. */
+.stats-mode-switch,.mobile-overview-mode{position:relative;isolation:isolate;overflow:hidden}
+.stats-mode-switch .mode-switch-indicator,
+.mobile-overview-mode .mode-switch-indicator{
+  position:absolute;z-index:0;top:4px;bottom:4px;left:4px;
+  width:calc(50% - 4px);border-radius:11px;
+  background:linear-gradient(135deg,#FF6A2A,#FF5A1F);
+  box-shadow:0 5px 16px rgba(255,90,31,.24),inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .34s cubic-bezier(.22,1,.36,1),border-radius .25s ease;
+  pointer-events:none;
+}
+.stats-mode-switch.scrim-selected .mode-switch-indicator,
+.mobile-overview-mode.scrim-selected .mode-switch-indicator{transform:translateX(100%)}
+.stats-mode-switch button,.mobile-overview-mode button{position:relative;z-index:1;transition:color .22s ease,transform .22s ease}
+.stats-mode-switch button.active{background:transparent!important;color:#17191B!important;box-shadow:none!important}
+.stats-mode-switch button:not(.active){background:transparent!important;color:rgba(221,229,236,.62)!important}
+.mobile-overview-mode button.active{background:transparent!important;color:#17191B!important;box-shadow:none!important}
+.mobile-overview-mode button:not(.active){background:transparent!important;color:rgba(221,229,236,.72)!important}
+.stats-mode-switch button:active,.mobile-overview-mode button:active{transform:scale(.96)}
+/* Make the four home metrics read as the primary content of each glass tile. */
+.mobile-overview-stats>article strong{
+  font-size:clamp(32px,8.4vw,42px)!important;
+  line-height:.98!important;
+  letter-spacing:-.055em!important;
+  font-weight:800!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .stats-mode-switch .mode-switch-indicator,.mobile-overview-mode .mode-switch-indicator{transition:none}
+}
