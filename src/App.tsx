@@ -687,7 +687,7 @@ function ClipsPanel({ clips, onWatchClip, clipSubmitOpen, setClipSubmitOpen, cli
       <form role="dialog" aria-modal="true" aria-labelledby="clip-submit-title" onSubmit={async e => {
         e.preventDefault(); setClipBusy(true); setClipMessage('');
         try {
-          const r = await fetch((import.meta.env.VITE_API_URL || '').replace(/\\/$/, '') + '/api/clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clipForm) });
+          const r = await fetch((import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clipForm) });
           const d = await r.json();
           if (!r.ok) throw new Error(d.error || 'Could not submit clip.');
           setClipMessage('Submitted! Your clip is now waiting for OG ELITE moderation.');
