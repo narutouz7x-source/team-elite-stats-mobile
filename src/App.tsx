@@ -255,8 +255,13 @@ export function App() {
     <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><div className="topbar-actions"><button className="icon-button background-picker-trigger" onClick={() => setBackgroundPickerOpen(true)} aria-label="Choose background"><ImageIcon size={19}/></button><button className="icon-button" onClick={() => void load()} aria-label="Refresh data"><RefreshCw size={18}/></button><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></div></header>
     <main>
       {tab === 'home' && <>
-        <section className="mobile-overview-hero">
-          <div><span>OG ELITE / LIVE PERFORMANCE CENTER</span><h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1><p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p></div>
+        <section className="mobile-overview-hero tournament-glass-card">
+          <img className="tournament-glass-logo" src={ogEliteLogo} alt="" aria-hidden="true"/>
+          <div className="tournament-glass-art" aria-hidden="true"/>
+          <div className="tournament-glass-copy">
+            <span className="tournament-glass-kicker">{activeTournament?.active ? 'CURRENT TOURNAMENT' : 'TOURNAMENT'}</span>
+            <h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1>
+          </div>
           <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
         </section>
         {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
@@ -269,10 +274,10 @@ export function App() {
         <HomePerformanceGraphs matches={visibleMatches} players={players}/>
         <section className="mobile-overview-content">
           <div className="mobile-overview-panel mobile-overview-results">
-            <div className="mobile-overview-panel-head"><div><span>LATEST RESULTS</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>VIEW HISTORY →</button></div>
+            <div className="mobile-overview-panel-head"><h2>{selectedStageName || 'Recent matches'}</h2><button onClick={()=>setTab('matches')}>HISTORY <ChevronRight size={13}/></button></div>
             <div className="mobile-overview-match-list">
               {visibleMatches.length === 0 ? <EmptyState text="No match results for this stage yet."/> : visibleMatches.slice(0,8).map(match => <article className="mobile-overview-match" key={match.id} onClick={()=>void handleViewMatch(match)}>
-                <div className="overview-match-no">M{match.matchNumber}</div><div className="overview-match-info"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>{activeTournament?.name || 'TOURNAMENT'} • {match.category || selectedCategory}</span></div>
+                <div className="overview-match-no">M{match.matchNumber}</div><div className="overview-match-info"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>{match.category === 'scrim' ? 'Scrim' : 'Official'}</span></div>
                 <div className="overview-match-stat"><small>PLACE</small><b>#{match.position}</b></div><div className="overview-match-stat"><small>KILLS</small><b>{(match.playerStats || []).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b></div><div className="overview-match-stat"><small>POINTS</small><b>{match.totalPoints}</b></div><span className="overview-match-view">VIEW</span>
               </article>)}
             </div>
@@ -337,7 +342,6 @@ export function App() {
       </section>
     </div>}
     {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS • UPDATE</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button></div></section></div>}
-    <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
   </div>;
 }
