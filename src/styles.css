@@ -705,3 +705,36 @@ body{background-color:#050706!important}
   overscroll-behavior:contain;
   margin:auto!important;
 }
+
+
+/* History tournament selector: pill-shaped glass tiles, tap to open results. */
+.history-tournament-section{margin:14px 0 18px}
+.history-tournament-heading{display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px}
+.history-tournament-heading>span,.history-selected-title>div>span{font:800 9px Inter;letter-spacing:.16em;color:rgba(221,229,236,.66)}
+.history-tournament-heading small{font:600 10px Inter;color:rgba(221,229,236,.48)}
+.history-tournament-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.history-tournament-pill{position:relative;min-width:0;min-height:72px;padding:13px 30px 12px 14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;text-align:left;border:1px solid rgba(221,229,236,.18);border-radius:22px;background:linear-gradient(145deg,rgba(221,229,236,.13),rgba(30,34,38,.38));color:#F3F6F8;backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:border-color .2s,background .2s,transform .2s}
+.history-tournament-pill:active{transform:scale(.98)}
+.history-tournament-pill.active{border-color:rgba(255,90,31,.72);background:linear-gradient(145deg,rgba(255,90,31,.19),rgba(30,34,38,.52));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 0 0 1px rgba(255,90,31,.12)}
+.history-tournament-pill strong{max-width:100%;font:800 12px/1.3 Inter;overflow-wrap:anywhere}
+.history-tournament-pill span{font:700 8px Inter;letter-spacing:.08em;color:rgba(221,229,236,.56)}
+.history-tournament-pill svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(221,229,236,.56)}
+.history-selected-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:18px 2px 12px}
+.history-selected-title h2{margin:5px 0 0;font:800 18px/1.2 Orbitron;color:#F3F6F8;overflow-wrap:anywhere}
+.history-selected-title>strong{flex:0 0 auto;color:rgba(221,229,236,.62);font:700 9px Inter;white-space:nowrap}
+@media(max-width:380px){.history-tournament-grid{grid-template-columns:1fr}.history-tournament-pill{min-height:64px}}
+/* Home metric cubes: keep only the label and make the metric the visual focus. */
+.mobile-overview-stats>article{min-height:104px!important;justify-content:space-between!important;padding:15px 13px!important}
+.mobile-overview-stats>article strong{font-size:clamp(25px,7vw,34px)!important;line-height:1!important}
+.mobile-overview-stats>article span{display:none!important}
+/* White active-player count on the roster intro. */
+.mobile-roster-count strong{color:#F3F6F8!important}
+/* Clips title area should not carry a separate dark tile behind its heading. */
+.mobile-content-hero{background:transparent!important;background-image:none!important;box-shadow:none!important;border-bottom:0!important}
+.mobile-content-hero:before,.mobile-content-hero:after,.mobile-content-hero>div{background:transparent!important;box-shadow:none!important}
+/* Slightly darken only the refresh and notification controls for contrast. */
+.topbar-actions .icon-button:not(.background-picker-trigger){background:rgba(8,11,13,.24)!important;border-color:rgba(221,229,236,.19)!important}
+/* Recent match rows sit directly on the results glass; no individual dark tile. */
+.mobile-overview-results .mobile-overview-match{background:transparent!important;background-image:none!important;box-shadow:none!important;border-radius:0!important}
+.mobile-overview-results .overview-match-info strong{font-size:13px!important;letter-spacing:.01em}
+.mobile-overview-results .overview-match-info span{display:none!important}
