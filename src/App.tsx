@@ -57,16 +57,21 @@ const tournamentCategory = (tournament: Tournament, allMatches: Match[], allTour
     const byId = new Map(sameName.map(item => [item.id, item]));
     const linked = allMatches.filter(match => byId.has(match.tournamentId));
     if (linked.length) {
+      // The tournament record owns the category. Match.category can be stale
+      // on older records, so never let it move this tournament between tabs.
       const counts = { official: 0, scrim: 0 };
       for (const match of linked) {
         const owner = byId.get(match.tournamentId);
-        const category = normalizeCategory(match.category || owner?.category);
-        counts[category] += 1;
+        if (owner) counts[normalizeCategory(owner.category)] += 1;
       }
       if (counts.official !== counts.scrim) return counts.scrim > counts.official ? 'scrim' : 'official';
-      const latest = linked.slice().sort((a, b) => b.timestamp - a.timestamp)[0];
-      const owner = latest ? byId.get(latest.tournamentId) : undefined;
-      return normalizeCategory(latest?.category || owner?.category);
+      const activeDuplicate = sameName.find(item => item.active && linked.some(match => match.tournamentId === item.id));
+      if (activeDuplicate) return normalizeCategory(activeDuplicate.category);
+      const mostUsedDuplicate = sameName.slice().sort((a, b) =>
+        linked.filter(match => match.tournamentId === b.id).length -
+        linked.filter(match => match.tournamentId === a.id).length
+      )[0];
+      return normalizeCategory(mostUsedDuplicate?.category || sameName[0]?.category);
     }
     const activeDuplicate = sameName.find(item => item.active);
     return normalizeCategory(activeDuplicate?.category || sameName[0]?.category);
@@ -158,7 +163,7 @@ export function App() {
     const scoped = tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory);
     const grouped = new Map<string, Tournament[]>();
     for (const tournament of scoped) {
-      const normalizedName = tournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+      const normalizedName = normalizeTournamentName(tournament.name);
       const group = grouped.get(normalizedName) || [];
       group.push(tournament);
       grouped.set(normalizedName, group);
