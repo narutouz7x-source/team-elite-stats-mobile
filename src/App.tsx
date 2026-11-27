@@ -95,6 +95,7 @@ export function App() {
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
   const [selectedStage, setSelectedStage] = useState<string>('overall');
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
@@ -125,7 +126,8 @@ export function App() {
     if (await requestRewardedAccess('clip')) window.open(url, '_system');
   }
 
-  const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
+  const categoryTournaments = useMemo(() => tournaments.filter(t => (t.category || 'official') === selectedCategory), [tournaments, selectedCategory]);
+  const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0] ?? tournaments[0];
 
   async function load() {
     setLoading(true); setError('');
@@ -230,7 +232,7 @@ export function App() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+  useEffect(() => { setSelectedStage('overall'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
   const tournamentMatches = useMemo(() => categoryMatches
@@ -294,7 +296,7 @@ export function App() {
         </section>
       </>}
 
-      {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}
+      {tab === 'matches' && <><PageHeading title="Match History" subtitle=""/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><section className="history-tournament-select"><select aria-label="Select tournament" value={activeTournament?.id || ''} onChange={event=>{setSelectedTournamentId(event.target.value);setSelectedStage('overall')}}><option value="" disabled>Select tournament</option>{categoryTournaments.map(tournament=><option key={tournament.id} value={tournament.id}>{tournament.name}</option>)}</select><strong>{tournamentMatches.length} matches</strong></section><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}
 
       {tab === 'team' && <><section className="mobile-players-intro"><div><span className="mobile-section-kicker">OG ELITE / FREE FIRE MAX</span><h1>Meet the <em>squad.</em></h1><p>Player profiles, roles and live competitive output managed from the OG ELITE control center.</p></div><div className="mobile-roster-count"><strong>{String(players.length).padStart(2,'0')}</strong><span>ACTIVE<br/>PLAYERS</span></div></section><div className="mobile-player-grid">{players.map((player,index)=>{const stat=playerStats[player.id];const kills=stat?.kills??0;const played=stat?.played??0;const avg=played?(kills/played).toFixed(2):'0.00';return <article className="mobile-public-player" key={player.id}><div className="mobile-public-player-image" style={player.imageUrl?{backgroundImage:'url('+player.imageUrl+')'}:undefined}><div className="mobile-public-player-identity"><strong>{player.name}</strong><small>{player.role}</small></div>{!player.imageUrl&&<span>{player.name.slice(0,2)}</span>}<b>#{String(index+1).padStart(2,'0')}</b><i>ACTIVE</i></div><div className="mobile-public-player-stats"><div><strong>{kills}</strong><span>KILLS</span></div><div><strong>{played}</strong><span>MATCHES</span></div><div><strong>{avg}</strong><span>AVG</span></div></div></article>})}</div>{players.length===0&&<div className="empty">No player records available yet.</div>}</>}
 
@@ -356,7 +358,7 @@ function HomePerformanceGraphs({ matches, players }: { matches: Match[]; players
   const total = teamValues.reduce((sum, value) => sum + value, 0);
   const playerTotal = playerValues.reduce((sum, value) => sum + value, 0);
   return <section className="graphs">
-    <div className="section-head"><div><h2>Performance graphs</h2><p>Match-by-match output from the same saved results as the website.</p></div><span className="pill ghost">{ordered.length} matches</span></div>
+    <div className="section-head"><div><h2>Performance</h2></div><span className="pill ghost">{ordered.length} matches</span></div>
     <article className="graph-card">
       <div className="graph-title"><div><span>Team performance</span><h3>Squad eliminations</h3></div><div className="graph-total"><strong>{total}</strong><small>total kills</small></div></div>
       <PerformanceLineChart matches={ordered} values={teamValues} chartId="team"/>
@@ -432,7 +434,7 @@ function ClipMedia({clip}:{clip:Clip}){const imageUrl=clipImageUrl(clip);if(!ima
 
 function SocialIcon({type}:{type:'youtube'|'instagram'}){if(type==='youtube')return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="18" height="12" rx="4" fill="currentColor"/><path d="m10 9 5 3-5 3V9Z" fill="#0a0d0b" stroke="none"/></svg>;return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none"/><circle cx="12" cy="12" r="4" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" stroke="none"/></svg>}
 function NavButton({active,label,icon,onClick}:{active:boolean;label:string;icon:React.ReactNode;onClick:()=>void}){return <button className={active?'nav-item active':'nav-item'} onClick={onClick}>{icon}<span>{label}</span></button>}
-function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>}
+function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</section>}
 function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>WEEK / PHASE</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>OVERALL</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
 function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
 function placementPoints(position:number){const rankPoints:Record<number,number>={1:12,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};return rankPoints[position]||0}
