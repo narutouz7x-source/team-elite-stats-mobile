@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
@@ -316,7 +317,7 @@ function PerformanceLineChart({ matches, values, chartId }: { matches: Match[]; 
   const area = path + ' L ' + points[points.length - 1].x.toFixed(1) + ' ' + CHART_BASE + ' L ' + points[0].x.toFixed(1) + ' ' + CHART_BASE + ' Z';
   const gradientId = 'graphArea-' + chartId;
   const labelEvery = values.length > 8 ? 2 : 1;
-  const pick = (event: React.PointerEvent<SVGSVGElement>) => {
+  const pick = (event: ReactPointerEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width) return;
     const x = ((event.clientX - rect.left) / rect.width) * CHART_W;
