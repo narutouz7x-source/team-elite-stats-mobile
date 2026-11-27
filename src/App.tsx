@@ -110,6 +110,10 @@ export function App() {
     window.open(url, '_system');
   }
 
+  function handleViewMatch(match: Match) {
+    setSelectedMatch(match);
+  }
+
   const categoryTournaments = useMemo(() => tournaments.filter(t => (t.category || 'official') === selectedCategory), [tournaments, selectedCategory]);
   const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0] ?? tournaments[0];
 
