@@ -98,6 +98,7 @@ export function App() {
   const [selectedStage, setSelectedStage] = useState<string>('overall');
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  const [historyOpenTournamentId, setHistoryOpenTournamentId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
@@ -123,8 +124,23 @@ export function App() {
   function markNotificationRead(id: string) { setReadNotificationIds(current => { const next = new Set(current); next.add(id); return next; }); }
   function markAllNotificationsRead() { setReadNotificationIds(current => new Set([...current, ...notifications.map(item => item.id)])); }
 
-  const categoryTournaments = useMemo(() => tournaments.filter(t => (t.category || 'official') === selectedCategory), [tournaments, selectedCategory]);
-  const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0] ?? tournaments[0];
+  const categoryTournaments = useMemo(() => {
+    const scoped = tournaments.filter(t => (t.category || 'official') === selectedCategory);
+    const seen = new Set<string>();
+    return scoped.filter(t => {
+      const normalizedName = t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+      if (seen.has(normalizedName)) return false;
+      seen.add(normalizedName);
+      return true;
+    });
+  }, [tournaments, selectedCategory]);
+  const activeTournament = categoryTournaments.find(t => t.id === selectedTournamentId) ?? categoryTournaments.find(t => t.active) ?? categoryTournaments[0] ?? tournaments.find(t => (t.category || 'official') === selectedCategory);
+  const historyTournament = categoryTournaments.find(t => t.id === historyOpenTournamentId);
+  const historyTournamentIds = useMemo(() => {
+    if (!historyTournament) return [];
+    const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+    return tournaments.filter(t => (t.category || 'official') === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ') === normalizedName).map(t => t.id);
+  }, [historyTournament, tournaments, selectedCategory]);
 
   async function load() {
     setLoading(true); setError('');
@@ -213,13 +229,26 @@ export function App() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => { setSelectedStage('overall'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
-  const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
+  useEffect(() => {
+    setSelectedStage('overall');
+    const targetTournament = historyTournament || activeTournament;
+    if (!targetTournament) { setStages([]); return; }
+    api.stages(targetTournament.id).then(setStages).catch(() => setStages([]));
+  }, [activeTournament?.id, historyTournament?.id]);
+  const categoryMatches = useMemo(() => matches.filter(match => {
+    const linkedTournament = tournaments.find(tournament => tournament.id === match.tournamentId);
+    const authoritativeCategory = linkedTournament ? (linkedTournament.category || 'official') : (match.category || 'official');
+    return authoritativeCategory === selectedCategory;
+  }), [matches, tournaments, selectedCategory]);
 
   const tournamentMatches = useMemo(() => categoryMatches
-    .filter(m => !activeTournament || m.tournamentId === activeTournament.id)
+    .filter(match => !activeTournament || match.tournamentId === activeTournament.id)
     .slice()
     .sort((a,b) => b.timestamp - a.timestamp), [categoryMatches, activeTournament?.id]);
+  const historyMatches = useMemo(() => categoryMatches
+    .filter(match => historyTournamentIds.includes(match.tournamentId))
+    .slice()
+    .sort((a,b) => b.timestamp - a.timestamp), [categoryMatches, historyTournamentIds]);
 
   useEffect(() => {
     if (selectedStage !== 'overall' && !stages.some(stage => stage.id === selectedStage)) setSelectedStage('overall');
@@ -277,7 +306,36 @@ export function App() {
         </section>
       </>}
 
-      {tab === 'matches' && <><PageHeading title="Match History" subtitle=""/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><section className="history-tournament-section"><div className="history-tournament-heading"><span>TOURNAMENTS</span><small>{categoryTournaments.length} available</small></div><div className="history-tournament-grid">{categoryTournaments.map(tournament=>{const count=categoryMatches.filter(match=>match.tournamentId===tournament.id).length;const selected=tournament.id===activeTournament?.id;return <button type="button" key={tournament.id} className={"history-tournament-pill"+(selected?" active":"")} onClick={()=>{setSelectedTournamentId(tournament.id);setSelectedStage("overall")}}><strong>{tournament.name}</strong><span>{count} {count===1?"MATCH":"MATCHES"}</span><ChevronRight size={15}/></button>})}</div></section>{activeTournament&&<><div className="history-selected-title"><div><span>SELECTED TOURNAMENT</span><h2>{activeTournament.name}</h2></div><strong>{tournamentMatches.length} MATCHES</strong></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}</>}
+      {tab === 'matches' && <>
+        <PageHeading title="Match History" subtitle=""/>
+        <div className={"stats-mode-switch matches-mode-switch "+(selectedCategory === 'official' ? 'official-selected' : 'scrim-selected')}>
+          <span className="mode-switch-indicator" aria-hidden="true"/>
+          <button className={selectedCategory==='official'?'active':''} onClick={()=>{setSelectedCategory('official');setHistoryOpenTournamentId('')}}>OFFICIAL</button>
+          <button className={selectedCategory==='scrim'?'active':''} onClick={()=>{setSelectedCategory('scrim');setHistoryOpenTournamentId('')}}>SCRIMS</button>
+        </div>
+        {historyTournament ? <>
+          <div className="history-detail-heading">
+            <button type="button" className="history-back-button" onClick={()=>setHistoryOpenTournamentId('')}>‹ <span>ALL TOURNAMENTS</span></button>
+            <div className="history-selected-title"><div><span>{selectedCategory === 'official' ? 'OFFICIAL TOURNAMENT' : 'SCRIM TOURNAMENT'}</span><h2>{historyTournament.name}</h2></div><strong>{historyMatches.length} MATCHES</strong></div>
+          </div>
+          <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>
+          <MatchList matches={selectedStage === 'overall' ? historyMatches : historyMatches.filter(match=>match.weekId===selectedStage)} onView={handleViewMatch}/>
+        </> : <>
+          <section className="history-tournament-section">
+            <div className="history-tournament-heading"><span>TOURNAMENTS</span><small>{categoryTournaments.length} available</small></div>
+            <div className="history-tournament-grid">
+              {categoryTournaments.map(tournament=>{
+                const normalizedName=tournament.name.trim().toLocaleLowerCase().replace(/\\s+/g,' ');
+                const aliases=tournaments.filter(item=>(item.category||'official')===selectedCategory&&item.name.trim().toLocaleLowerCase().replace(/\\s+/g,' ')===normalizedName).map(item=>item.id);
+                const count=categoryMatches.filter(match=>aliases.includes(match.tournamentId)).length;
+                return <button type="button" key={tournament.id} className="history-tournament-pill" onClick={()=>{setHistoryOpenTournamentId(tournament.id);setSelectedTournamentId(tournament.id);setSelectedStage('overall')}}>
+                  <strong>{tournament.name}</strong><span>{count} {count===1?'MATCH':'MATCHES'}</span><ChevronRight size={15}/>
+                </button>;
+              })}
+            </div>
+          </section>
+        </>}
+      </>}
 
       {tab === 'team' && <><section className="mobile-players-intro"><div><h1>Meet the <em>squad.</em></h1></div><div className="mobile-roster-count"><strong>{String(players.length).padStart(2,'0')}</strong><span>ACTIVE<br/>PLAYERS</span></div></section><div className="mobile-player-grid">{players.map((player,index)=>{const stat=playerStats[player.id];const kills=stat?.kills??0;const played=stat?.played??0;const avg=played?(kills/played).toFixed(2):'0.00';return <article className="mobile-public-player" key={player.id}><div className="mobile-public-player-image" style={player.imageUrl?{backgroundImage:'url('+player.imageUrl+')'}:undefined}><div className="mobile-public-player-identity"><strong>{player.name}</strong><small>{player.role}</small></div>{!player.imageUrl&&<span>{player.name.slice(0,2)}</span>}<b>#{String(index+1).padStart(2,'0')}</b><i>ACTIVE</i></div><div className="mobile-public-player-stats"><div><strong>{kills}</strong><span>KILLS</span></div><div><strong>{played}</strong><span>MATCHES</span></div><div><strong>{avg}</strong><span>AVG</span></div></div></article>})}</div>{players.length===0&&<div className="empty">No player records available yet.</div>}</>}
 
