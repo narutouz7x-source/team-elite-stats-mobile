@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { Bell, Check, ChevronLeft, ChevronRight, Copy, Home, Play, Plus, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
+import { Bell, Check, ChevronLeft, ChevronRight, Copy, Home, Image as ImageIcon, Play, Plus, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
@@ -46,6 +46,13 @@ const clipImageUrl = (clip: Clip) => {
   }
   return '';
 };
+
+const backgroundOptions = [
+  { id: 'default', name: 'Original', src: '' },
+  { id: 'one', name: 'Background 1', src: new URL('../assets/background/9df826020ed4c832e0db0a28bf9e0a8d.jpg', import.meta.url).href },
+  { id: 'two', name: 'Background 2', src: new URL('../assets/background/d4ed50b73caed239ffec2db3fd06178d.jpg', import.meta.url).href },
+  { id: 'three', name: 'Background 3', src: new URL('../assets/background/f54846636d8d1268f37cd3fedacc58a2.jpg', import.meta.url).href }
+];
 
 const relativeTime = (timestamp?: number) => {
   if (!timestamp) return '—';
@@ -93,6 +100,9 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
+  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
+  const [selectedBackground, setSelectedBackground] = useState(() => localStorage.getItem('og-test-background') || 'default');
+
 
 
   async function handleViewMatch(match: Match) {
@@ -127,6 +137,16 @@ export function App() {
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
     finally { setLoading(false); }
   }
+
+  useEffect(() => {
+    const selected = backgroundOptions.find(option => option.id === selectedBackground) || backgroundOptions[0];
+    document.body.dataset.appBackground = selected.id;
+    document.body.style.backgroundImage = selected.src ? 'linear-gradient(180deg, rgba(5,7,6,.66), rgba(5,7,6,.82)), url(' + selected.src + ')' : '';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+    localStorage.setItem('og-test-background', selected.id);
+  }, [selectedBackground]);
 
   useEffect(() => {
     void load();
@@ -224,6 +244,7 @@ export function App() {
         <div className="brand-copy"><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div>
       </div>
       <div className="topbar-actions">
+        <button className="icon-button background-picker-trigger" onClick={() => setBackgroundPickerOpen(true)} aria-label="Choose background" title="Choose background"><ImageIcon size={18}/></button>
         <button className={'icon-button' + (loading ? ' spinning' : '')} onClick={() => void load()} aria-label="Refresh data" title="Refresh data"><RefreshCw size={18}/></button>
         <button className={'icon-button' + (tab === 'alerts' ? ' current' : '')} onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={19}/>{notifications.length > 0 && <i/>}</button>
       </div>
@@ -392,6 +413,19 @@ export function App() {
         <NavButton active={tab === 'crew'} label="Crew" icon={<Users size={20}/>} onClick={() => goTab('crew', 4)}/>
       </div>
     </nav>
+
+    {backgroundPickerOpen && <div className="background-picker-backdrop" onClick={() => setBackgroundPickerOpen(false)}>
+      <section className="background-picker" role="dialog" aria-modal="true" aria-labelledby="background-picker-title" onClick={event => event.stopPropagation()}>
+        <div className="background-picker-head"><div><span>TEST BUILD ONLY</span><h2 id="background-picker-title">Choose a background</h2></div><button onClick={() => setBackgroundPickerOpen(false)} aria-label="Close background picker"><X size={19}/></button></div>
+        <div className="background-picker-options">
+          {backgroundOptions.map(option => <button key={option.id} className={selectedBackground === option.id ? "background-choice active" : "background-choice"} onClick={() => setSelectedBackground(option.id)}>
+            <span className="background-choice-preview" style={option.src ? { backgroundImage: 'url(' + option.src + ')' } : undefined}>{!option.src && <ImageIcon size={22}/>}</span>
+            <span>{option.name}</span>{selectedBackground === option.id && <b>✓</b>}
+          </button>)}
+        </div>
+        <p>Changes apply instantly and stay selected on this test install.</p>
+      </section>
+    </div>}
 
     {appUpdate && <div className="sheet-backdrop center"><section className="update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title">
       <div className="update-icon"><RefreshCw size={20}/></div>
