@@ -319,8 +319,8 @@ body[data-app-background]:not([data-app-background="default"])::after{display:no
 
 /* Shared translucent material for existing OG ELITE cards; layout and content remain unchanged. */
 .mobile-overview-hero,.mobile-overview-stats>article,.mobile-overview-panel,.graph-card,
-.mobile-public-player,.mobile-full-clip,.mobile-creator-card,.mobile-overview-match,
-.match-card,.notification,.mobile-content-hero,.mobile-creator-image,.mobile-clip-card,
+.mobile-public-player,.mobile-full-clip,.mobile-creator-card,
+.match-card,.notification,.mobile-creator-image,.mobile-clip-card,
 .stage-picker,.background-picker,.clip-submit-modal form{
   background-color:rgba(30,34,38,.58)!important;
   background-image:linear-gradient(145deg,rgba(221,229,236,.105),rgba(30,34,38,.34))!important;
@@ -833,3 +833,74 @@ body{background-color:#050706!important}
 .mobile-content-hero > div { padding:0 !important; border:0 !important; }
 .mobile-content-hero > div > span,
 .mobile-content-hero > div > p { display:none !important; }
+
+
+/* Final component-level corrections: don't let shared card material leak into nested rows or page headings. */
+.mobile-overview-results .mobile-overview-match,
+.mobile-overview-results .mobile-overview-match-list,
+.mobile-overview-results .overview-match-no,
+.mobile-overview-results .overview-match-info,
+.mobile-overview-results .overview-match-stat {
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.mobile-overview-results .mobile-overview-match:before,
+.mobile-overview-results .mobile-overview-match:after,
+.mobile-overview-results .mobile-overview-match > *:before,
+.mobile-overview-results .mobile-overview-match > *:after {
+  content:none!important;
+  display:none!important;
+}
+.mobile-content-hero,
+.mobile-content-hero > div {
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.mobile-content-hero h1 { background:transparent!important; text-shadow:none!important; }
+.mobile-players-intro h1 em { color:#F3F6F8!important; }
+
+/* Notification pills: explicit read/unread state, with one stable rounded card style. */
+.notification-list .notification {
+  position:relative;
+  align-items:center;
+  min-height:76px;
+  padding:14px 42px 14px 14px!important;
+  border-radius:20px!important;
+  overflow:hidden;
+  cursor:pointer;
+  transition:background .18s ease,border-color .18s ease,opacity .18s ease;
+}
+.notification-list .notification.is-unread {
+  border-color:rgba(255,90,31,.42)!important;
+  background:linear-gradient(145deg,rgba(221,229,236,.16),rgba(30,34,38,.52))!important;
+}
+.notification-list .notification.is-read {
+  border-color:rgba(221,229,236,.13)!important;
+  background:linear-gradient(145deg,rgba(221,229,236,.075),rgba(30,34,38,.34))!important;
+  opacity:.78;
+}
+.notification-unread-dot {
+  position:absolute;
+  right:16px;
+  top:50%;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#FF5A1F;
+  transform:translateY(-50%);
+  box-shadow:0 0 0 4px rgba(255,90,31,.12);
+}
+.notification-list .notification-icon {
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(221,229,236,.12);
+}
