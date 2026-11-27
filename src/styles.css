@@ -334,3 +334,210 @@ body[data-app-background]:not([data-app-background="default"])::after{display:no
 .mobile-overview-hero{border:1px solid rgba(221,229,236,.22)!important}
 .mobile-overview-stats>article,.graph-card,.mobile-public-player,.mobile-full-clip,
 .mobile-creator-card,.mobile-overview-panel,.notification,.match-card{overflow:hidden}
+
+
+/* Final polish: restore the branded tournament rectangle and correct glass spacing. */
+.topbar{
+  height:68px;
+  padding:0 2px;
+  gap:12px;
+  background:rgba(10,13,15,.42);
+  border-bottom:1px solid rgba(221,229,236,.1);
+  backdrop-filter:blur(24px) saturate(155%);
+  -webkit-backdrop-filter:blur(24px) saturate(155%);
+}
+.topbar .brand{flex:1 1 auto;min-width:0;gap:10px}
+.topbar .brand-mark{flex:0 0 38px;width:38px;height:38px;border-radius:11px}
+.topbar .brand>div:last-child{min-width:0}
+.topbar .brand strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .brand span{font-size:6px;letter-spacing:.16em}
+.topbar-actions{flex:0 0 auto;gap:7px;margin-left:auto}
+.topbar-actions .icon-button{width:36px;height:36px;flex:0 0 36px;border-radius:12px;background:rgba(221,229,236,.075);border:1px solid rgba(221,229,236,.16);color:#DDE5EC}
+.topbar-actions .icon-button:active{background:rgba(255,90,31,.18);border-color:rgba(255,90,31,.42)}
+.topbar-actions .icon-button i{background:#FF5A1F;right:7px;top:6px}
+
+/* Tournament title card: the old rounded rectangle, now in the translucent material. */
+.mobile-overview-hero.tournament-glass-card{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:176px;
+  margin:18px 0 16px;
+  padding:24px 20px 18px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  border:1px solid rgba(221,229,236,.25);
+  border-radius:26px;
+  background:
+    linear-gradient(115deg,rgba(30,34,38,.72),rgba(30,34,38,.42) 58%,rgba(30,34,38,.58));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24),inset 0 -1px 0 rgba(0,0,0,.18),0 16px 34px rgba(0,0,0,.16);
+  backdrop-filter:blur(24px) saturate(145%);
+  -webkit-backdrop-filter:blur(24px) saturate(145%);
+}
+.tournament-glass-card:before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  opacity:.72;
+  background:repeating-radial-gradient(circle at 88% 42%,transparent 0 14px,rgba(221,229,236,.1) 14px 15px);
+  mask-image:radial-gradient(ellipse at 88% 42%,#000 0%,transparent 62%);
+  -webkit-mask-image:radial-gradient(ellipse at 88% 42%,#000 0%,transparent 62%);
+  pointer-events:none;
+}
+.tournament-glass-logo{
+  position:absolute;
+  z-index:-1;
+  width:178px;
+  height:178px;
+  object-fit:contain;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%) rotate(-8deg);
+  opacity:.13;
+  filter:grayscale(1) brightness(1.8);
+  pointer-events:none;
+}
+.tournament-glass-art{
+  position:absolute;
+  z-index:-1;
+  width:220px;
+  height:220px;
+  right:-76px;
+  top:-82px;
+  border:1px solid rgba(221,229,236,.14);
+  border-radius:50%;
+  box-shadow:0 0 0 16px rgba(221,229,236,.025),0 0 0 34px rgba(221,229,236,.02),inset 0 0 45px rgba(221,229,236,.035);
+  pointer-events:none;
+}
+.tournament-glass-copy{position:relative;z-index:1;max-width:min(78%,520px)}
+.tournament-glass-kicker{display:block;color:rgba(221,229,236,.64)!important;font:800 8px Inter!important;letter-spacing:.18em!important}
+.tournament-glass-card h1{
+  margin:13px 0 0;
+  color:#F3F6F8;
+  font:800 clamp(25px,6.8vw,42px)/1.05 Orbitron;
+  letter-spacing:-.045em;
+  overflow-wrap:anywhere;
+  text-shadow:0 2px 18px rgba(0,0,0,.28);
+}
+.tournament-glass-card .mobile-overview-mode{
+  position:relative;
+  z-index:2;
+  margin:0;
+  padding:3px;
+  gap:4px;
+  width:max-content;
+  border:1px solid rgba(221,229,236,.18);
+  border-radius:999px;
+  background:rgba(12,16,19,.26);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.tournament-glass-card .mobile-overview-mode button{
+  padding:8px 12px;
+  border-radius:999px;
+  color:rgba(221,229,236,.75);
+  font:800 8px Inter;
+  letter-spacing:.08em;
+}
+.tournament-glass-card .mobile-overview-mode button.active{
+  background:#FF5A1F;
+  color:#151719;
+  box-shadow:0 4px 14px rgba(255,90,31,.2);
+}
+
+/* Remove the opaque outer tray; the glass capsule itself is the navigation. */
+.bottom-nav{
+  width:min(calc(100% - 36px),390px);
+  height:62px;
+  padding:0;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:0;
+  overflow:visible;
+}
+.app-shell.home-banner-visible .bottom-nav{bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+.nav-tabs{
+  height:62px;
+  padding:5px;
+  border-radius:31px;
+  background:linear-gradient(180deg,rgba(221,229,236,.15),rgba(221,229,236,.045) 55%,rgba(221,229,236,.1));
+  border:1px solid rgba(221,229,236,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(0,0,0,.16),0 10px 28px rgba(0,0,0,.24);
+}
+.nav-liquid-indicator{left:5px;top:5px;bottom:5px;width:calc((100% - 10px)/5);border-radius:26px}
+.nav-tabs .nav-item{font-size:10px;gap:2px}
+.nav-tabs .nav-item svg{width:17px;height:17px}
+.nav-center-slot{gap:1px}
+.nav-create-button{width:36px;height:36px;box-shadow:0 5px 14px rgba(255,90,31,.2)}
+.nav-create-button svg{width:21px;height:21px}
+.nav-create-label{font-size:8px;line-height:1}
+
+/* The results heading and rows share one glass surface, without a second inset panel. */
+.mobile-overview-panel.mobile-overview-results{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,rgba(221,229,236,.085),rgba(221,229,236,.025) 58%,rgba(30,34,38,.22));
+  border-color:rgba(221,229,236,.16);
+  backdrop-filter:blur(22px) saturate(135%);
+  -webkit-backdrop-filter:blur(22px) saturate(135%);
+}
+.mobile-overview-results .mobile-overview-panel-head{
+  margin:-13px -13px 0;
+  padding:14px 13px 12px;
+  background:transparent!important;
+  border:0;
+  box-shadow:none;
+  align-items:center;
+}
+.mobile-overview-results .mobile-overview-panel-head:before,
+.mobile-overview-results .mobile-overview-panel-head:after{display:none!important}
+.mobile-overview-results .mobile-overview-panel-head h2{
+  margin:0;
+  color:#F0F3F5;
+  font:700 14px Inter;
+  letter-spacing:-.02em;
+}
+.mobile-overview-results .mobile-overview-panel-head button{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  padding:6px 8px;
+  border:1px solid rgba(221,229,236,.15);
+  border-radius:999px;
+  color:rgba(221,229,236,.82);
+  background:rgba(221,229,236,.055);
+  font:700 8px Inter;
+  letter-spacing:0;
+}
+.mobile-overview-results .mobile-overview-match-list{
+  margin-top:0;
+  padding-top:2px;
+  background:transparent!important;
+}
+.mobile-overview-results .mobile-overview-match{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.mobile-overview-results .mobile-overview-match:last-child{border-bottom:0}
+
+@media(max-width:620px){
+  .topbar{height:64px}
+  .topbar .brand-mark{width:34px;height:34px;flex-basis:34px}
+  .topbar .brand strong{font-size:9px;letter-spacing:.1em}
+  .topbar-actions{gap:6px}
+  .topbar-actions .icon-button{width:34px;height:34px;flex-basis:34px}
+  .mobile-overview-hero.tournament-glass-card{min-height:164px;padding:20px 16px 15px;border-radius:23px;margin-top:14px}
+  .tournament-glass-logo{width:148px;height:148px;right:4px}
+  .tournament-glass-copy{max-width:82%}
+  .tournament-glass-card h1{font-size:clamp(23px,7vw,34px)}
+  .nav-tabs{height:58px}
+  .bottom-nav{height:58px;width:min(calc(100% - 30px),370px)}
+  .nav-liquid-indicator{top:4px;bottom:4px}
+  .nav-create-button{width:34px;height:34px}
+  .mobile-overview-results .mobile-overview-panel-head{margin:-13px -13px 0;padding:12px 13px 10px}
+}
