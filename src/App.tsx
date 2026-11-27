@@ -252,19 +252,19 @@ export function App() {
 
     <main key={tab} className="view">
       {tab === 'home' && <>
-        <section className="tournament-banner">
-          <div className="banner-top">
-            <div className="banner-badges">
-              {activeTournament && <span className="pill">{activeTournament.active ? 'Current' : statusLabel(activeTournament.status)}</span>}
-            </div>
+        <section className="hybrid-tournament-card" aria-label="Current tournament">
+          <div className="hybrid-tournament-top">
+            <div className="hybrid-tournament-label"><span className="hybrid-live-mark"/><span>{activeTournament?.active ? 'CURRENT TOURNAMENT' : activeTournament ? statusLabel(activeTournament.status).toUpperCase() : 'TOURNAMENT'}</span></div>
             <Segmented value={selectedCategory} onChange={setSelectedCategory} label="Match category"/>
           </div>
-          <h1>{activeTournament?.name || 'No active tournament'}</h1>
-          <p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p>
-          {activeTournament && typeof activeTournament.currentRank === 'number' && activeTournament.currentRank > 0 && <div className="banner-rank">
-            <b>#{activeTournament.currentRank}</b>
-            <span><strong>Current standing</strong>{activeTournament.rankDescription && <small>{activeTournament.rankDescription}</small>}</span>
-          </div>}
+          <div className="hybrid-tournament-main">
+            <div className="hybrid-tournament-copy">
+              <h1>{activeTournament?.name || 'No active tournament'}</h1>
+              <p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p>
+            </div>
+            {activeTournament && typeof activeTournament.currentRank === 'number' && activeTournament.currentRank > 0 && <div className="hybrid-rank-block"><strong>#{activeTournament.currentRank}</strong><span>RUNNING RANK</span></div>}
+          </div>
+          {activeTournament?.rankDescription && <div className="hybrid-rank-note">{activeTournament.rankDescription}</div>}
         </section>
 
         {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
@@ -683,11 +683,11 @@ function ClipsPanel({ clips, onWatchClip, clipSubmitOpen, setClipSubmitOpen, cli
           </div>
         </article>)}
     </section>
-    {clipSubmitOpen && <div className="sheet-backdrop" onClick={() => setClipSubmitOpen(false)}>
-      <form className="sheet clip-sheet" role="dialog" aria-modal="true" aria-labelledby="clip-submit-title" onSubmit={async e => {
+    {clipSubmitOpen && <div className="clip-submit-modal" onClick={() => setClipSubmitOpen(false)}>
+      <form role="dialog" aria-modal="true" aria-labelledby="clip-submit-title" onSubmit={async e => {
         e.preventDefault(); setClipBusy(true); setClipMessage('');
         try {
-          const r = await fetch((import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clipForm) });
+          const r = await fetch((import.meta.env.VITE_API_URL || '').replace(/\\/$/, '') + '/api/clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clipForm) });
           const d = await r.json();
           if (!r.ok) throw new Error(d.error || 'Could not submit clip.');
           setClipMessage('Submitted! Your clip is now waiting for OG ELITE moderation.');
@@ -696,16 +696,15 @@ function ClipsPanel({ clips, onWatchClip, clipSubmitOpen, setClipSubmitOpen, cli
         } catch (e) { setClipMessage(e instanceof Error ? e.message : 'Could not submit clip.'); }
         finally { setClipBusy(false); }
       }} onClick={e => e.stopPropagation()}>
-        <div className="sheet-grip" aria-hidden="true"/>
-        <button type="button" className="sheet-close" aria-label="Close clip submission" onClick={() => setClipSubmitOpen(false)}><X size={18}/></button>
-        <div className="clip-sheet-head"><div className="clip-sheet-icon"><Play size={18}/></div><h2 id="clip-submit-title">Submit a clip</h2></div>
-        <p className="sheet-note">Share your best moment with the OG ELITE community. Every submission is reviewed before it goes live.</p>
-        <label className="field"><span>Clip URL</span><input required type="url" value={clipForm.url} onChange={e => setClipForm({ ...clipForm, url: e.target.value })} placeholder="https://youtube.com/..."/></label>
-        <label className="field"><span>Clip title</span><input value={clipForm.title} onChange={e => setClipForm({ ...clipForm, title: e.target.value })} placeholder="Insane final circle clutch"/></label>
-        <label className="field"><span>Your name or username</span><input value={clipForm.submittedBy} onChange={e => setClipForm({ ...clipForm, submittedBy: e.target.value })} placeholder="Your name"/></label>
-        <label className="field"><span>Player or creator <em>Optional</em></span><input value={clipForm.creatorName} onChange={e => setClipForm({ ...clipForm, creatorName: e.target.value })} placeholder="Player name"/></label>
+        <button type="button" className="clip-modal-close" aria-label="Close clip submission" onClick={() => setClipSubmitOpen(false)}><X size={18}/></button>
+        <div className="clip-submit-head"><div className="clip-submit-icon"><Play size={18}/></div><div><span>OG ELITE / COMMUNITY</span><h2 id="clip-submit-title">Submit a clip</h2></div></div>
+        <p className="clip-submit-subtitle">Share your best moment with the OG ELITE community. Every submission is reviewed before it goes live.</p>
+        <label><span>CLIP URL</span><input required type="url" value={clipForm.url} onChange={e => setClipForm({ ...clipForm, url: e.target.value })} placeholder="https://youtube.com/..."/></label>
+        <label><span>CLIP TITLE</span><input value={clipForm.title} onChange={e => setClipForm({ ...clipForm, title: e.target.value })} placeholder="Insane final circle clutch"/></label>
+        <label><span>YOUR NAME / USERNAME</span><input value={clipForm.submittedBy} onChange={e => setClipForm({ ...clipForm, submittedBy: e.target.value })} placeholder="Your name"/></label>
+        <label><span>PLAYER / CREATOR <em>OPTIONAL</em></span><input value={clipForm.creatorName} onChange={e => setClipForm({ ...clipForm, creatorName: e.target.value })} placeholder="Player name"/></label>
         {clipMessage && <div className="clip-message" role="status">{clipMessage}</div>}
-        <button className="btn primary block" disabled={clipBusy}>{clipBusy ? 'Submitting…' : 'Submit for review'}</button>
+        <button className="clip-submit-button" disabled={clipBusy}>{clipBusy ? 'SUBMITTING...' : 'SUBMIT FOR REVIEW'}</button>
       </form>
     </div>}
   </>;
