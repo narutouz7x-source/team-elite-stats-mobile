@@ -135,7 +135,7 @@ export function App() {
     const scoped = tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory);
     const grouped = new Map<string, Tournament[]>();
     for (const tournament of scoped) {
-      const normalizedName = tournament.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+      const normalizedName = tournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
       const group = grouped.get(normalizedName) || [];
       group.push(tournament);
       grouped.set(normalizedName, group);
@@ -151,8 +151,8 @@ export function App() {
   const historyTournament = categoryTournaments.find(t => t.id === historyOpenTournamentId);
   const historyTournamentIds = useMemo(() => {
     if (!historyTournament) return [];
-    const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
-    return tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\\s+/g, ' ') === normalizedName).map(t => t.id);
+    const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+    return tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ') === normalizedName).map(t => t.id);
   }, [historyTournament, tournaments, matches, selectedCategory]);
 
   async function load() {
@@ -164,14 +164,14 @@ export function App() {
       setSettings(s); setTournaments(t); setPlayers(p); setMatches(m); setNotifications(n); setPlayerStats(pstats); setClips(clipsData); setCreators(creatorsData);
       const latestByCategory = { official: 0, scrim: 0 };
       for (const match of m) {
-        const category = match.category === 'scrim' ? 'scrim' : 'official';
+        const category = normalizeCategory(match.category);
         const timestamp = Number(match.timestamp) || 0;
         if (timestamp > latestByCategory[category]) latestByCategory[category] = timestamp;
       }
       const latestCategory = latestByCategory.scrim > latestByCategory.official ? 'scrim' : 'official';
       setSelectedCategory(latestCategory);
-      const firstTournament = t.find(x => x.active && (x.category || 'official') === latestCategory)
-        ?? t.find(x => (x.category || 'official') === latestCategory)
+      const firstTournament = t.find(x => x.active && tournamentCategory(x, m) === latestCategory)
+        ?? t.find(x => tournamentCategory(x, m) === latestCategory)
         ?? t[0];
       if (firstTournament) setStages(await api.stages(firstTournament.id));
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
@@ -345,8 +345,8 @@ export function App() {
             <div className="history-tournament-heading"><span>TOURNAMENTS</span><small>{categoryTournaments.length} available</small></div>
             <div className="history-tournament-grid">
               {categoryTournaments.map(tournament=>{
-                const normalizedName=tournament.name.trim().toLocaleLowerCase().replace(/\\s+/g,' ');
-                const aliases=tournaments.filter(item=>(item.category||'official')===selectedCategory&&item.name.trim().toLocaleLowerCase().replace(/\\s+/g,' ')===normalizedName).map(item=>item.id);
+                const normalizedName=tournament.name.trim().toLocaleLowerCase().replace(/\s+/g,' ');
+                const aliases=tournaments.filter(item=>(item.category||'official')===selectedCategory&&item.name.trim().toLocaleLowerCase().replace(/\s+/g,' ')===normalizedName).map(item=>item.id);
                 const count=categoryMatches.filter(match=>aliases.includes(match.tournamentId)).length;
                 return <button type="button" key={tournament.id} className="history-tournament-pill" onClick={()=>{setHistoryOpenTournamentId(tournament.id);setSelectedTournamentId(tournament.id);setSelectedStage('overall')}}>
                   <strong>{tournament.name}</strong><span>{count} {count===1?'MATCH':'MATCHES'}</span><ChevronRight size={15}/>
