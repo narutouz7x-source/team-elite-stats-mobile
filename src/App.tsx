@@ -49,33 +49,10 @@ const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => 
 const normalizeCategory = (value?: string): 'official' | 'scrim' => String(value || '').toLowerCase().includes('scrim') ? 'scrim' : 'official';
 const normalizeTournamentName = (value: string) => value.normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 const tournamentCategory = (tournament: Tournament, allMatches: Match[], allTournaments: Tournament[] = []) => {
-  // AUR3X exists as duplicate records across the two categories. Resolve its
-  // single display category from its linked match data, rather than the
-  // duplicate tournament records' potentially conflicting category labels.
-  if (normalizeTournamentName(tournament.name) === 'aur3x' && allTournaments.length) {
-    const sameName = allTournaments.filter(item => normalizeTournamentName(item.name) === 'aur3x');
-    const byId = new Map(sameName.map(item => [item.id, item]));
-    const linked = allMatches.filter(match => byId.has(match.tournamentId));
-    if (linked.length) {
-      // The tournament record owns the category. Match.category can be stale
-      // on older records, so never let it move this tournament between tabs.
-      const counts = { official: 0, scrim: 0 };
-      for (const match of linked) {
-        const owner = byId.get(match.tournamentId);
-        if (owner) counts[normalizeCategory(owner.category)] += 1;
-      }
-      if (counts.official !== counts.scrim) return counts.scrim > counts.official ? 'scrim' : 'official';
-      const activeDuplicate = sameName.find(item => item.active && linked.some(match => match.tournamentId === item.id));
-      if (activeDuplicate) return normalizeCategory(activeDuplicate.category);
-      const mostUsedDuplicate = sameName.slice().sort((a, b) =>
-        linked.filter(match => match.tournamentId === b.id).length -
-        linked.filter(match => match.tournamentId === a.id).length
-      )[0];
-      return normalizeCategory(mostUsedDuplicate?.category || sameName[0]?.category);
-    }
-    const activeDuplicate = sameName.find(item => item.active);
-    return normalizeCategory(activeDuplicate?.category || sameName[0]?.category);
-  }
+  // AUR3X is explicitly a Scrims tournament. Do not infer its category from
+  // duplicate records or match metadata; those sources caused it to leak into
+  // the Official history tab.
+  if (normalizeTournamentName(tournament.name) === 'aur3x') return 'scrim';
   if (tournament.category) return normalizeCategory(tournament.category);
   const linked = allMatches.filter(match => match.tournamentId === tournament.id && match.category);
   if (!linked.length) return 'official';
