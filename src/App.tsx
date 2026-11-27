@@ -47,7 +47,7 @@ const clipImageUrl = (clip: Clip) => {
 
 const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => n + (Number(p.kills) || 0), 0);
 const normalizeCategory = (value?: string): 'official' | 'scrim' => String(value || '').toLowerCase().includes('scrim') ? 'scrim' : 'official';
-const normalizeTournamentName = (value: string) => value.normalize('NFKC').replace(/[\\u200B-\\u200D\\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+const normalizeTournamentName = (value: string) => value.normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 const tournamentCategory = (tournament: Tournament, allMatches: Match[], allTournaments: Tournament[] = []) => {
   // AUR3X exists as duplicate records across the two categories. Resolve its
   // single display category from its linked match data, rather than the
@@ -174,8 +174,8 @@ export function App() {
   const historyTournament = categoryTournaments.find(t => t.id === historyOpenTournamentId);
   const historyTournamentIds = useMemo(() => {
     if (!historyTournament) return [];
-    const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-    return tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ') === normalizedName).map(t => t.id);
+    const normalizedName = normalizeTournamentName(historyTournament.name);
+    return tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory && normalizeTournamentName(t.name) === normalizedName).map(t => t.id);
   }, [historyTournament, tournaments, matches, selectedCategory]);
 
   async function load() {
