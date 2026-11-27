@@ -399,3 +399,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+
+/* Test-build-only background comparison switcher */
+body[data-app-background]:not([data-app-background="default"]){background-color:#050706;background-repeat:no-repeat}
+body[data-app-background]:not([data-app-background="default"])::before,
+body[data-app-background]:not([data-app-background="default"])::after{display:none}
+#root{background:transparent}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.background-picker-backdrop{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);display:flex;align-items:flex-end;justify-content:center;padding:14px}
+.background-picker{width:min(520px,100%);padding:20px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:linear-gradient(145deg,#191b1c,#090a0b);box-shadow:0 24px 90px rgba(0,0,0,.7)}
+.background-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.background-picker-head span{font:800 7px Orbitron;letter-spacing:.16em;color:#ff9b5c}
+.background-picker-head h2{font:800 18px Orbitron;margin:6px 0 0;color:#f4f5f4}
+.background-picker-head>button{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#252729;color:#dce2e5}
+.background-picker-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.background-choice{position:relative;display:grid;gap:8px;padding:8px;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:#111416;color:#dce2e5;font:700 9px Inter}
+.background-choice.active{border-color:#ff6a1f;box-shadow:0 0 0 1px rgba(255,106,31,.22)}
+.background-choice-preview{height:86px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(145deg,#252a2d,#111416);background-size:cover;background-position:center;color:#737d82}
+.background-choice>b{position:absolute;right:13px;top:13px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#ff6a1f;color:#111;font-size:11px}
+.background-picker>p{margin:13px 0 0;color:#7d878d;font:500 8px Inter;line-height:1.5}
+@media(min-width:700px){.background-picker-backdrop{align-items:center}.background-picker-options{grid-template-columns:repeat(4,minmax(0,1fr))}.background-choice-preview{height:110px}}
