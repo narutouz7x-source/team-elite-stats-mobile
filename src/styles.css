@@ -420,3 +420,41 @@ body[data-app-background]:not([data-app-background="default"])::after{display:no
 .background-choice>b{position:absolute;right:13px;top:13px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#ff6a1f;color:#111;font-size:11px}
 .background-picker>p{margin:13px 0 0;color:#7d878d;font:500 8px Inter;line-height:1.5}
 @media(min-width:700px){.background-picker-backdrop{align-items:center}.background-picker-options{grid-template-columns:repeat(4,minmax(0,1fr))}.background-choice-preview{height:110px}}
+
+
+/* HYBRID REDESIGN — original tournament rectangle + Claude performance system */
+.hybrid-tournament-card{
+  position:relative;overflow:hidden;margin-top:16px;padding:18px 19px 17px;
+  border:1px solid rgba(221,229,236,.15);border-radius:18px;
+  background:linear-gradient(112deg,rgba(43,49,54,.96),rgba(26,30,34,.96));
+  box-shadow:0 14px 34px rgba(0,0,0,.18);isolation:isolate;
+}
+.hybrid-tournament-card:before{content:"";position:absolute;z-index:-1;right:-42px;top:-76px;width:240px;height:240px;border:1px solid rgba(221,229,236,.08);border-radius:50%;box-shadow:0 0 0 18px rgba(221,229,236,.018),0 0 0 38px rgba(221,229,236,.014)}
+.hybrid-tournament-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hybrid-tournament-label{display:flex;align-items:center;gap:8px;color:rgba(221,229,236,.58);font:800 10px var(--font-body);letter-spacing:.13em}
+.hybrid-live-mark{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 4px rgba(255,90,31,.12)}
+.hybrid-tournament-main{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px}
+.hybrid-tournament-copy{min-width:0}
+.hybrid-tournament-copy h1{font:700 clamp(26px,7vw,39px)/1.02 var(--font-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
+.hybrid-tournament-copy p{margin-top:8px;max-width:38ch;color:var(--glacier-60);font-size:11px;line-height:1.55}
+.hybrid-rank-block{flex:0 0 auto;min-width:76px;padding:10px 12px;border-left:1px solid rgba(221,229,236,.14);text-align:center}
+.hybrid-rank-block strong{display:block;font:700 34px/.95 var(--font-display);color:var(--glacier)}
+.hybrid-rank-block span{display:block;margin-top:5px;color:var(--orange);font-size:8px;font-weight:800;letter-spacing:.1em}
+.hybrid-rank-note{margin-top:13px;padding-top:10px;border-top:1px solid rgba(221,229,236,.09);color:var(--glacier-60);font-size:11px}
+.clip-submit-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(7,9,10,.78);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.clip-submit-modal form{position:relative;width:min(480px,100%);max-height:min(90dvh,760px);overflow:auto;padding:25px;border-radius:22px;background:linear-gradient(145deg,#242a2e,#171b1e);border:1px solid rgba(221,229,236,.14);box-shadow:0 28px 90px rgba(0,0,0,.55)}
+.clip-submit-head{display:flex;align-items:center;gap:12px;padding-right:36px}
+.clip-submit-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:rgba(255,90,31,.12);border:1px solid rgba(255,90,31,.22);color:var(--orange)}
+.clip-submit-head>div:last-child>span{display:block;color:var(--orange);font-size:9px;font-weight:800;letter-spacing:.14em}
+.clip-submit-head h2{margin:5px 0 0;font:700 25px var(--font-display);text-transform:uppercase}
+.clip-submit-subtitle{margin:10px 0 20px!important;color:var(--glacier-60)!important;font-size:12px!important;line-height:1.6!important}
+.clip-submit-modal label{display:block;margin:14px 0;color:var(--glacier-80);font-size:10px;font-weight:800;letter-spacing:.1em}
+.clip-submit-modal label>span{display:flex;align-items:center;gap:6px}
+.clip-submit-modal label em{font-style:normal;color:var(--glacier-40);font-size:8px}
+.clip-submit-modal input{display:block;width:100%;margin-top:7px;padding:12px 13px;border-radius:10px;background:#15191c;border:1px solid rgba(221,229,236,.12);color:var(--glacier);font:600 13px var(--font-body);transition:border-color .2s,box-shadow .2s}
+.clip-submit-modal input:focus{outline:none;border-color:rgba(255,90,31,.65);box-shadow:0 0 0 3px rgba(255,90,31,.09)}
+.clip-submit-modal .clip-submit-button{width:100%;margin-top:8px;padding:14px;border-radius:12px;background:var(--orange);color:var(--charcoal);font-size:10px;font-weight:900;letter-spacing:.12em}
+.clip-submit-modal .clip-submit-button:disabled{opacity:.6}
+.clip-modal-close{position:absolute;right:15px;top:15px;width:34px;height:34px;border-radius:10px;background:rgba(221,229,236,.07);border:1px solid rgba(221,229,236,.12);color:var(--glacier);display:grid;place-items:center}
+.clip-message{margin:12px 0;padding:11px 12px;border-radius:10px;background:rgba(255,90,31,.08);border:1px solid rgba(255,90,31,.18);color:var(--glacier-80);font-size:12px}
+@media(max-width:520px){.hybrid-tournament-card{padding:16px}.hybrid-tournament-main{align-items:flex-end}.hybrid-tournament-copy h1{font-size:30px}.hybrid-rank-block{min-width:65px;padding:8px 7px}.clip-submit-modal form{padding:21px;border-radius:18px}}
