@@ -2,6 +2,9 @@ name: Build OG ELITE Testing APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - test/background-switcher
 
 permissions:
   contents: read
