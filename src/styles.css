@@ -541,3 +541,5 @@ body[data-app-background]:not([data-app-background="default"])::after{display:no
   .nav-create-button{width:34px;height:34px}
   .mobile-overview-results .mobile-overview-panel-head{margin:-13px -13px 0;padding:12px 13px 10px}
 }
+
+/* Build trigger: final visual polish included. */
