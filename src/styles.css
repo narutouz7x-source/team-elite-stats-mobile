@@ -218,3 +218,9 @@ button:focus-visible{outline-color:#ff6a00}
 /* Keep the fixed navigation clear of the native AdMob banner on Home. */
 /* Lift the nav only while the native Home banner is actually visible. */
 .app-shell.home-banner-visible .bottom-nav{bottom:82px}
+
+
+/* Selective Claude performance graph components — original app layout retained */
+@media (min-width: 600px) {
+@media (max-width: 380px) {
+@media (prefers-reduced-motion: reduce) {
