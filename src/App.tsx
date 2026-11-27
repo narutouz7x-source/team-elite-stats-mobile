@@ -274,7 +274,7 @@ export function App() {
             <span className="tournament-glass-kicker">{activeTournament?.active ? 'CURRENT TOURNAMENT' : 'TOURNAMENT'}</span>
             <h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1>
           </div>
-          <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
+          <div className={"mobile-overview-mode "+(selectedCategory === 'official' ? 'official-selected' : 'scrim-selected')}><span className="mode-switch-indicator" aria-hidden="true"/><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
         </section>
         {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
         <section className="mobile-overview-stats">
