@@ -45,6 +45,8 @@ const clipImageUrl = (clip: Clip) => {
   return '';
 };
 
+const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => n + (Number(p.kills) || 0), 0);
+
 const relativeTime = (timestamp?: number) => {
   if (!timestamp) return '—';
   const diff = Math.max(0, Date.now() - timestamp);
@@ -223,6 +225,7 @@ export function App() {
           <article><small>MATCHES PLAYED</small><strong>{visibleMatches.length}</strong><span>{selectedStageName || 'RECORDED MATCHES'}</span></article>
           <article className="accent"><small>ROSTER</small><strong>{players.length}</strong><span>ACTIVE PLAYERS</span></article>
         </section>
+        <HomePerformanceGraphs matches={visibleMatches} players={players}/>
         <section className="mobile-overview-content">
           <div className="mobile-overview-panel mobile-overview-results">
             <div className="mobile-overview-panel-head"><div><span>LATEST RESULTS</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>VIEW HISTORY →</button></div>
@@ -262,6 +265,88 @@ export function App() {
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
   </div>;
 }
+
+function HomePerformanceGraphs({ matches, players }: { matches: Match[]; players: Player[] }) {
+  const [selectedPlayerId, setSelectedPlayerId] = useState(players[0]?.id || '');
+  useEffect(() => { if (!players.some(player => player.id === selectedPlayerId)) setSelectedPlayerId(players[0]?.id || ''); }, [players, selectedPlayerId]);
+  const ordered = matches.slice().sort((a, b) => a.timestamp - b.timestamp).slice(-12);
+  const teamValues = ordered.map(matchKills);
+  const selectedPlayer = players.find(player => player.id === selectedPlayerId);
+  const playerValues = ordered.map(match => (match.playerStats || []).filter(row => row.playerId === selectedPlayerId).reduce((sum, row) => sum + (Number(row.kills) || 0), 0));
+  const total = teamValues.reduce((sum, value) => sum + value, 0);
+  const playerTotal = playerValues.reduce((sum, value) => sum + value, 0);
+  return <section className="graphs">
+    <div className="section-head"><div><h2>Performance graphs</h2><p>Match-by-match output from the same saved results as the website.</p></div><span className="pill ghost">{ordered.length} matches</span></div>
+    <article className="graph-card">
+      <div className="graph-title"><div><span>Team performance</span><h3>Squad eliminations</h3></div><div className="graph-total"><strong>{total}</strong><small>total kills</small></div></div>
+      <PerformanceLineChart matches={ordered} values={teamValues} chartId="team"/>
+    </article>
+    <article className="graph-card">
+      <div className="graph-title"><div><span>Individual performance</span><h3>{selectedPlayer?.name || 'Player kills'}</h3></div><div className="graph-total"><strong>{playerTotal}</strong><small>total kills</small></div></div>
+      <label className="select-field"><span>Player</span>
+        <select value={selectedPlayerId} onChange={event => setSelectedPlayerId(event.target.value)} disabled={!players.length}>
+          <option value="">Select player</option>{players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}
+        </select>
+      </label>
+      <PerformanceLineChart matches={ordered} values={playerValues} chartId="player"/>
+    </article>
+    {!ordered.length && <EmptyState text="Match-by-match graphs will appear as results are added."/>}
+  </section>;
+}
+
+const CHART_W = 360;
+const CHART_H = 172;
+const CHART_PAD_L = 28;
+const CHART_PAD_R = 14;
+const CHART_TOP = 14;
+const CHART_BASE = 138;
+
+function PerformanceLineChart({ matches, values, chartId }: { matches: Match[]; values: number[]; chartId: string }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  if (!values.length) return <EmptyState text="No match results available for this graph yet."/>;
+  const max = Math.max(1, ...values);
+  const span = CHART_W - CHART_PAD_L - CHART_PAD_R;
+  const step = values.length > 1 ? span / (values.length - 1) : 0;
+  const points = values.map((value, index) => ({
+    x: values.length > 1 ? CHART_PAD_L + index * step : CHART_PAD_L + span / 2,
+    y: CHART_BASE - (value / max) * (CHART_BASE - CHART_TOP)
+  }));
+  const active = Math.min(picked ?? values.length - 1, values.length - 1);
+  const path = points.map((point, index) => (index ? 'L' : 'M') + ' ' + point.x.toFixed(1) + ' ' + point.y.toFixed(1)).join(' ');
+  const area = path + ' L ' + points[points.length - 1].x.toFixed(1) + ' ' + CHART_BASE + ' L ' + points[0].x.toFixed(1) + ' ' + CHART_BASE + ' Z';
+  const gradientId = 'graphArea-' + chartId;
+  const labelEvery = values.length > 8 ? 2 : 1;
+  const pick = (event: React.PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width) return;
+    const x = ((event.clientX - rect.left) / rect.width) * CHART_W;
+    const index = step ? Math.round((x - CHART_PAD_L) / step) : 0;
+    setPicked(Math.max(0, Math.min(values.length - 1, index)));
+  };
+  const activeMatch = matches[active];
+  return <div className="chart">
+    <div className="chart-readout" aria-live="polite">
+      <strong>{values[active]}</strong><span>kills in M{activeMatch?.matchNumber}</span>
+    </div>
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} role="img" aria-label={chartId === 'team' ? 'Team kills per match' : 'Selected player kills per match'} onPointerDown={pick} onPointerMove={event => { if (event.buttons || event.pointerType === 'touch') pick(event); }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" className="area-top"/><stop offset="100%" className="area-bottom"/></linearGradient>
+      </defs>
+      {[0, 0.5, 1].map(level => {
+        const y = CHART_BASE - level * (CHART_BASE - CHART_TOP);
+        return <g key={level}><line className="grid-line" x1={CHART_PAD_L} x2={CHART_W - CHART_PAD_R} y1={y} y2={y}/><text className="axis-text" x={CHART_PAD_L - 8} y={y + 3.5} textAnchor="end">{Math.round(max * level)}</text></g>;
+      })}
+      <path className="chart-area" d={area} fill={'url(#' + gradientId + ')'} key={'a' + chartId + values.join('-')}/>
+      <line className="guide" x1={points[active].x} x2={points[active].x} y1={CHART_TOP - 4} y2={CHART_BASE}/>
+      <path className="chart-line" d={path} pathLength={1} key={'l' + chartId + values.join('-')}/>
+      {points.map((point, index) => index !== active && <circle className="dot" key={matches[index].id} cx={point.x} cy={point.y} r="3.2"/>)}
+      <circle className="dot-active-halo" cx={points[active].x} cy={points[active].y} r="10"/>
+      <circle className="dot-active" cx={points[active].x} cy={points[active].y} r="5.5"/>
+      {points.map((point, index) => (index % labelEvery === 0 || index === active) && <text key={'x' + matches[index].id} className={'axis-text x' + (index === active ? ' on' : '')} x={point.x} y={CHART_BASE + 22} textAnchor="middle">M{matches[index].matchNumber}</text>)}
+    </svg>
+  </div>;
+}
+
 
 function ClipMedia({clip}:{clip:Clip}){const imageUrl=clipImageUrl(clip);if(!imageUrl)return <div><span>{clip.platform}</span><b>▶</b></div>;return <><img src={imageUrl} alt="" loading="lazy" decoding="async" onError={e=>{e.currentTarget.style.display='none';const fallback=e.currentTarget.nextElementSibling as HTMLElement|null;if(fallback)fallback.style.display='flex'}}/><div style={{display:'none'}}><span>{clip.platform}</span><b>▶</b></div></>}
 
