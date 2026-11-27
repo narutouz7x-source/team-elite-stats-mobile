@@ -224,3 +224,43 @@ button:focus-visible{outline-color:#ff6a00}
 @media (min-width: 600px) {
 @media (max-width: 380px) {
 @media (prefers-reduced-motion: reduce) {
+
+
+/* Selective performance graphs — scoped to the graph components only */
+.graphs{margin:24px 0;display:grid;gap:12px}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.section-head h2{font:700 17px Orbitron,sans-serif;letter-spacing:.01em}
+.section-head p{margin-top:6px;font-size:10px;line-height:1.6;color:#8d978f;max-width:34ch}
+.section-head>.pill{flex:0 0 auto}
+.graph-card{padding:16px 14px 10px;border-radius:13px;background:linear-gradient(145deg,#111411,#090b0a);border:1px solid rgba(255,255,255,.08);min-width:0}
+.graph-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.graph-title span{font-size:9px;font-weight:700;color:#9aa49c}
+.graph-title h3{margin-top:4px;font:700 15px Orbitron,sans-serif;text-transform:uppercase}
+.graph-total{text-align:right;flex:0 0 auto}
+.graph-total strong{display:block;font:700 25px/.95 Orbitron,sans-serif;font-variant-numeric:tabular-nums}
+.graph-total small{font-size:8px;color:#879188;font-weight:600}
+.select-field{display:flex;align-items:center;gap:10px;margin-top:12px;padding:0 11px;height:40px;border-radius:9px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.09)}
+.select-field span{font-size:9px;color:#9aa49c;font-weight:700}
+.select-field select{flex:1;min-width:0;height:100%;background:transparent;border:0;color:#f2f4f2;font-weight:700;font-size:11px;appearance:none;-webkit-appearance:none}
+.select-field select option{background:#111411;color:#f2f4f2}
+.select-field:focus-within{border-color:#FF5A1F}
+.chart{margin-top:5px;touch-action:pan-y}
+.chart-readout{display:flex;align-items:baseline;gap:8px;padding-top:8px}
+.chart-readout strong{font:700 25px/1 Orbitron,sans-serif;font-variant-numeric:tabular-nums}
+.chart-readout span{font-size:9px;color:#879188;font-weight:600}
+.chart svg{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.grid-line{stroke:rgba(255,255,255,.13);stroke-dasharray:2 5}
+.axis-text{fill:#78837b;font:600 10px Inter,sans-serif}
+.axis-text.x.on{fill:#f4f5f4}
+.area-top{stop-color:#FF5A1F;stop-opacity:.2}
+.area-bottom{stop-color:#FF5A1F;stop-opacity:0}
+.chart-area{animation:ogGraphAreaIn .6s ease both}
+.chart-line{fill:none;stroke:#FF5A1F;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;animation:ogGraphDraw .8s ease both}
+@keyframes ogGraphDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes ogGraphAreaIn{from{opacity:0}to{opacity:1}}
+.guide{stroke:rgba(255,255,255,.35);stroke-dasharray:3 4}
+.dot{fill:#1E2226;stroke:#DDE5EC;stroke-width:1.8}
+.dot-active{fill:#1E2226;stroke:#FF5A1F;stroke-width:3;transition:cx .2s,cy .2s}
+.dot-active-halo{fill:rgba(255,90,31,.16);transition:cx .2s,cy .2s}
+@media(max-width:380px){.graph-card{padding:13px 10px 8px}.section-head h2{font-size:15px}.graph-title h3{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.chart-area,.chart-line{animation:none}}
