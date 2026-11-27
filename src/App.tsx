@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
-import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Image as ImageIcon, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Image as ImageIcon, Play, Plus, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
@@ -70,6 +70,13 @@ const relativeTime = (timestamp?: number) => {
 
 export function App() {
   const [tab, setTab] = useState<Tab>('home');
+  const navPointerStart = useRef<number | null>(null);
+  const navDragActive = useRef(false);
+  const navLastX = useRef<number | null>(null);
+  const [navPosition, setNavPosition] = useState(0);
+  const [navDragging, setNavDragging] = useState(false);
+  const [navStretch, setNavStretch] = useState(1);
+  const [clipActionsOpen, setClipActionsOpen] = useState(false);
   const [homeBannerVisible, setHomeBannerVisible] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -93,6 +100,12 @@ export function App() {
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
   const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState(() => localStorage.getItem('og-test-background') || 'default');
+
+  function goTab(nextTab: Tab, position: number) {
+    setTab(nextTab);
+    setNavPosition(position);
+    setClipActionsOpen(false);
+  }
 
   async function requestRewardedAccess(placement: 'clip' | 'match'): Promise<boolean> {
     const label = placement === 'clip' ? 'watch this clip' : 'view this match data';
@@ -136,6 +149,12 @@ export function App() {
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
     finally { setLoading(false); }
   }
+
+  useEffect(() => {
+    const positions: Record<string, number> = { home: 0, matches: 1, clips: 2, team: 3, crew: 4 };
+    if (tab in positions) setNavPosition(positions[tab]);
+    if (tab !== 'clips') setClipActionsOpen(false);
+  }, [tab]);
 
   useEffect(() => {
     const selected = backgroundOptions.find(option => option.id === selectedBackground) || backgroundOptions[0];
@@ -233,7 +252,7 @@ export function App() {
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
   return <div className={homeBannerVisible ? "app-shell home-banner-visible" : "app-shell"}>
-    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><div className="topbar-actions"><button className="icon-button background-picker-trigger" onClick={() => setBackgroundPickerOpen(true)} aria-label="Choose background"><ImageIcon size={19}/></button><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></div></header>
+    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><div className="topbar-actions"><button className="icon-button background-picker-trigger" onClick={() => setBackgroundPickerOpen(true)} aria-label="Choose background"><ImageIcon size={19}/></button><button className="icon-button" onClick={() => void load()} aria-label="Refresh data"><RefreshCw size={18}/></button><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></div></header>
     <main>
       {tab === 'home' && <>
         <section className="mobile-overview-hero">
@@ -281,7 +300,30 @@ export function App() {
       {tab === 'alerts' && <><PageHeading title="Notifications" subtitle="Match updates, content drops and admin announcements."/><div className="notification-list">{notifications.length===0&&<EmptyState text="No notifications yet."/>}{notifications.map(item=><article className="notification" key={item.id}><div className="notification-icon"><Bell size={17}/></div><div><strong>{item.title}</strong><p>{item.message||item.type}</p><time>{relativeTime(item.createdAt)}</time></div></article>)}</div></>}
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
-    <nav className="bottom-nav"><NavButton active={tab==='home'} label="Home" icon={<Home size={20}/>} onClick={()=>setTab('home')}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={20}/>} onClick={()=>setTab('matches')}/><NavButton active={tab==='team'} label="Team" icon={<Users size={20}/>} onClick={()=>setTab('team')}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={20}/>} onClick={()=>setTab('clips')}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={20}/>} onClick={()=>setTab('crew')}/><button className="refresh" onClick={()=>void load()} aria-label="Refresh"><RefreshCw size={18}/></button></nav>
+    <nav className="bottom-nav" aria-label="Main navigation">
+      <div className={`nav-tabs${navDragging ? ' dragging' : ''}${tab === 'clips' ? ' clips-active' : ''}`}
+        onPointerDown={event => { navPointerStart.current = event.clientX; navLastX.current = event.clientX; navDragActive.current = true; setNavDragging(false); setNavStretch(1); }}
+        onPointerMove={event => { if (!navDragActive.current || navPointerStart.current === null) return; const totalDelta = event.clientX - navPointerStart.current; if (!navDragging && Math.abs(totalDelta) < 7) return; if (!navDragging) { setNavDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } const rect = event.currentTarget.getBoundingClientRect(); const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left)); const next = Math.max(0, Math.min(4, Math.floor((x / rect.width) * 5))); const delta = navLastX.current === null ? 0 : event.clientX - navLastX.current; navLastX.current = event.clientX; setNavPosition(next); setNavStretch(Math.min(1.3, 1 + Math.abs(delta) * .014)); }}
+        onPointerUp={event => { if (!navDragActive.current) return; const wasDragged = navDragging; navDragActive.current = false; navPointerStart.current = null; setNavDragging(false); navLastX.current = null; setNavStretch(1); if (wasDragged) { const rect = event.currentTarget.getBoundingClientRect(); const index = Math.max(0, Math.min(4, Math.floor(((event.clientX - rect.left) / rect.width) * 5))); const nextTab = (['home', 'matches', 'clips', 'team', 'crew'] as Tab[])[index]; setNavPosition(index); setTab(nextTab); setClipActionsOpen(false); } }}
+        onPointerCancel={() => { navDragActive.current = false; navPointerStart.current = null; setNavDragging(false); navLastX.current = null; setNavStretch(1); setNavPosition(({ home: 0, matches: 1, clips: 2, team: 3, crew: 4 } as Record<string, number>)[tab] ?? 0); }}
+        style={{ '--active-shift': (navPosition * 100) + '%', '--nav-stretch': navStretch } as CSSProperties}>
+        <span className="nav-liquid-indicator" aria-hidden="true"/>
+        <NavButton active={tab === 'home'} label="Home" icon={<Home size={20}/>} onClick={() => goTab('home', 0)}/>
+        <NavButton active={tab === 'matches'} label="Matches" icon={<Swords size={20}/>} onClick={() => goTab('matches', 1)}/>
+        <div className="nav-center-slot">
+          <button type="button" className="nav-create-button" aria-label="Clips actions" aria-expanded={clipActionsOpen}
+            onPointerDown={event => event.stopPropagation()}
+            onClick={() => setClipActionsOpen(value => !value)}><Plus size={22} strokeWidth={2.6}/></button>
+          <span className="nav-create-label">Clips</span>
+          {clipActionsOpen && <div className="nav-clip-menu" role="menu" onPointerDown={event => event.stopPropagation()}>
+            <button type="button" role="menuitem" onClick={() => goTab('clips', 2)}><Play size={16}/><span><b>Browse clips</b><small>Watch community highlights</small></span></button>
+            <button type="button" role="menuitem" onClick={() => { goTab('clips', 2); setClipMessage(''); setClipSubmitOpen(true); }}><Plus size={16}/><span><b>Submit a clip</b><small>Add a new highlight</small></span></button>
+          </div>}
+        </div>
+        <NavButton active={tab === 'team'} label="Team" icon={<Shield size={20}/>} onClick={() => goTab('team', 3)}/>
+        <NavButton active={tab === 'crew'} label="Crew" icon={<Users size={20}/>} onClick={() => goTab('crew', 4)}/>
+      </div>
+    </nav>
     {backgroundPickerOpen && <div className="background-picker-backdrop" onClick={() => setBackgroundPickerOpen(false)}>
       <section className="background-picker" role="dialog" aria-modal="true" aria-labelledby="background-picker-title" onClick={event => event.stopPropagation()}>
         <div className="background-picker-head"><div><span>TEST BUILD</span><h2 id="background-picker-title">Choose a background</h2></div><button onClick={() => setBackgroundPickerOpen(false)} aria-label="Close background picker"><X size={19}/></button></div>
