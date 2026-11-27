@@ -145,7 +145,7 @@ export function App() {
   useEffect(() => {
     const selected = backgroundOptions.find(option => option.id === selectedBackground) || backgroundOptions[0];
     document.body.dataset.appBackground = selected.id;
-    document.body.style.backgroundImage = selected.src ? 'linear-gradient(180deg, rgba(5,7,6,.66), rgba(5,7,6,.82)), url(' + selected.src + ')' : '';
+    document.body.style.backgroundImage = selected.src ? 'url(' + selected.src + ')' : '';
     document.body.style.backgroundSize = 'cover';
     document.body.style.backgroundPosition = 'center';
     document.body.style.backgroundAttachment = 'fixed';
