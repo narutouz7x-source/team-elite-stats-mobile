@@ -47,7 +47,30 @@ const clipImageUrl = (clip: Clip) => {
 
 const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => n + (Number(p.kills) || 0), 0);
 const normalizeCategory = (value?: string): 'official' | 'scrim' => String(value || '').toLowerCase().includes('scrim') ? 'scrim' : 'official';
-const tournamentCategory = (tournament: Tournament, allMatches: Match[]) => {
+const normalizeTournamentName = (value: string) => value.normalize('NFKC').replace(/[\\u200B-\\u200D\\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+const tournamentCategory = (tournament: Tournament, allMatches: Match[], allTournaments: Tournament[] = []) => {
+  // AUR3X exists as duplicate records across the two categories. Resolve its
+  // single display category from its linked match data, rather than the
+  // duplicate tournament records' potentially conflicting category labels.
+  if (normalizeTournamentName(tournament.name) === 'aur3x' && allTournaments.length) {
+    const sameName = allTournaments.filter(item => normalizeTournamentName(item.name) === 'aur3x');
+    const byId = new Map(sameName.map(item => [item.id, item]));
+    const linked = allMatches.filter(match => byId.has(match.tournamentId));
+    if (linked.length) {
+      const counts = { official: 0, scrim: 0 };
+      for (const match of linked) {
+        const owner = byId.get(match.tournamentId);
+        const category = normalizeCategory(match.category || owner?.category);
+        counts[category] += 1;
+      }
+      if (counts.official !== counts.scrim) return counts.scrim > counts.official ? 'scrim' : 'official';
+      const latest = linked.slice().sort((a, b) => b.timestamp - a.timestamp)[0];
+      const owner = latest ? byId.get(latest.tournamentId) : undefined;
+      return normalizeCategory(latest?.category || owner?.category);
+    }
+    const activeDuplicate = sameName.find(item => item.active);
+    return normalizeCategory(activeDuplicate?.category || sameName[0]?.category);
+  }
   if (tournament.category) return normalizeCategory(tournament.category);
   const linked = allMatches.filter(match => match.tournamentId === tournament.id && match.category);
   if (!linked.length) return 'official';
@@ -132,7 +155,7 @@ export function App() {
   function markAllNotificationsRead() { setReadNotificationIds(current => new Set([...current, ...notifications.map(item => item.id)])); }
 
   const categoryTournaments = useMemo(() => {
-    const scoped = tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory);
+    const scoped = tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory);
     const grouped = new Map<string, Tournament[]>();
     for (const tournament of scoped) {
       const normalizedName = tournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
@@ -152,7 +175,7 @@ export function App() {
   const historyTournamentIds = useMemo(() => {
     if (!historyTournament) return [];
     const normalizedName = historyTournament.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-    return tournaments.filter(t => tournamentCategory(t, matches) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ') === normalizedName).map(t => t.id);
+    return tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory && t.name.trim().toLocaleLowerCase().replace(/\s+/g, ' ') === normalizedName).map(t => t.id);
   }, [historyTournament, tournaments, matches, selectedCategory]);
 
   async function load() {
@@ -170,8 +193,8 @@ export function App() {
       }
       const latestCategory = latestByCategory.scrim > latestByCategory.official ? 'scrim' : 'official';
       setSelectedCategory(latestCategory);
-      const firstTournament = t.find(x => x.active && tournamentCategory(x, m) === latestCategory)
-        ?? t.find(x => tournamentCategory(x, m) === latestCategory)
+      const firstTournament = t.find(x => x.active && tournamentCategory(x, m, t) === latestCategory)
+        ?? t.find(x => tournamentCategory(x, m, t) === latestCategory)
         ?? t[0];
       if (firstTournament) setStages(await api.stages(firstTournament.id));
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
@@ -254,7 +277,7 @@ export function App() {
       if (seen.has(match.id)) return false;
       seen.add(match.id);
       const linkedTournament = tournaments.find(tournament => tournament.id === match.tournamentId);
-      const authoritativeCategory = linkedTournament ? tournamentCategory(linkedTournament, matches) : normalizeCategory(match.category);
+      const authoritativeCategory = linkedTournament ? tournamentCategory(linkedTournament, matches, tournaments) : normalizeCategory(match.category);
       return authoritativeCategory === selectedCategory;
     });
   }, [matches, tournaments, selectedCategory]);
@@ -346,7 +369,7 @@ export function App() {
             <div className="history-tournament-grid">
               {categoryTournaments.map(tournament=>{
                 const normalizedName=tournament.name.trim().toLocaleLowerCase().replace(/\s+/g,' ');
-                const aliases=tournaments.filter(item=>(item.category||'official')===selectedCategory&&item.name.trim().toLocaleLowerCase().replace(/\s+/g,' ')===normalizedName).map(item=>item.id);
+                const aliases=tournaments.filter(item=>tournamentCategory(item,matches,tournaments)===selectedCategory&&normalizeTournamentName(item.name)===normalizeTournamentName(tournament.name)).map(item=>item.id);
                 const count=categoryMatches.filter(match=>aliases.includes(match.tournamentId)).length;
                 return <button type="button" key={tournament.id} className="history-tournament-pill" onClick={()=>{setHistoryOpenTournamentId(tournament.id);setSelectedTournamentId(tournament.id);setSelectedStage('overall')}}>
                   <strong>{tournament.name}</strong><span>{count} {count===1?'MATCH':'MATCHES'}</span><ChevronRight size={15}/>
