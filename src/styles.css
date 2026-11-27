@@ -221,9 +221,6 @@ button:focus-visible{outline-color:#ff6a00}
 
 
 /* Selective Claude performance graph components — original app layout retained */
-@media (min-width: 600px) {
-@media (max-width: 380px) {
-@media (prefers-reduced-motion: reduce) {
 
 
 /* Selective performance graphs — scoped to the graph components only */
