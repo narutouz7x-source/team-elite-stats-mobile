@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;600;700;800&family=Syncopate:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 @font-face{font-family:"Dreams Space";src:url("/fonts/dreams.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap}
 :root{font-family:Inter,sans-serif;color:#eef2ee;background:#1E2226;font-synthesis:none;text-rendering:optimizeLegibility}
@@ -2814,4 +2814,30 @@ textarea:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+}
+
+
+/* Final typography normalization: one interface family and restrained weights. */
+.app-shell,
+.app-shell * {
+  font-family: Inter, system-ui, sans-serif !important;
+}
+
+.app-shell h1,
+.app-shell h2,
+.app-shell h3,
+.app-shell strong {
+  font-weight: 500 !important;
+}
+
+.app-shell small,
+.app-shell button,
+.app-shell label,
+.app-shell time {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.app-shell .mobile-public-player-identity strong {
+  font-weight: 600 !important;
 }
