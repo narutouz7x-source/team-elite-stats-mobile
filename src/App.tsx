@@ -48,6 +48,7 @@ const clipImageUrl = (clip: Clip) => {
 const matchKills = (match: Match) => (match.playerStats || []).reduce((n, p) => n + (Number(p.kills) || 0), 0);
 const normalizeCategory = (value?: string): 'official' | 'scrim' => String(value || '').toLowerCase().includes('scrim') ? 'scrim' : 'official';
 const normalizeTournamentName = (value: string) => value.normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+const tournamentDedupKey = (value: string) => { const normalized = normalizeTournamentName(value).replace(/[\s\p{P}\p{S}]/gu, ''); return normalized.includes('aur3x') ? 'aur3x' : normalized; };
 const tournamentCategory = (tournament: Tournament, allMatches: Match[], allTournaments: Tournament[] = []) => {
   // AUR3X is explicitly a Scrims tournament. Do not infer its category from
   // duplicate records or match metadata; those sources caused it to leak into
@@ -140,7 +141,7 @@ export function App() {
     const scoped = tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory);
     const grouped = new Map<string, Tournament[]>();
     for (const tournament of scoped) {
-      const normalizedName = normalizeTournamentName(tournament.name);
+      const normalizedName = tournamentDedupKey(tournament.name);
       const group = grouped.get(normalizedName) || [];
       group.push(tournament);
       grouped.set(normalizedName, group);
@@ -157,7 +158,7 @@ export function App() {
   const historyTournamentIds = useMemo(() => {
     if (!historyTournament) return [];
     const normalizedName = normalizeTournamentName(historyTournament.name);
-    return tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory && normalizeTournamentName(t.name) === normalizedName).map(t => t.id);
+    return tournaments.filter(t => tournamentCategory(t, matches, tournaments) === selectedCategory && tournamentDedupKey(t.name) === tournamentDedupKey(historyTournament.name)).map(t => t.id);
   }, [historyTournament, tournaments, matches, selectedCategory]);
 
   async function load() {
@@ -351,7 +352,7 @@ export function App() {
             <div className="history-tournament-grid">
               {categoryTournaments.map(tournament=>{
                 const normalizedName=tournament.name.trim().toLocaleLowerCase().replace(/\s+/g,' ');
-                const aliases=tournaments.filter(item=>tournamentCategory(item,matches,tournaments)===selectedCategory&&normalizeTournamentName(item.name)===normalizeTournamentName(tournament.name)).map(item=>item.id);
+                const aliases=tournaments.filter(item=>tournamentCategory(item,matches,tournaments)===selectedCategory&&tournamentDedupKey(item.name)===tournamentDedupKey(tournament.name)).map(item=>item.id);
                 const count=categoryMatches.filter(match=>aliases.includes(match.tournamentId)).length;
                 return <button type="button" key={tournament.id} className="history-tournament-pill" onClick={()=>{setHistoryOpenTournamentId(tournament.id);setSelectedTournamentId(tournament.id);setSelectedStage('overall')}}>
                   <strong>{tournament.name}</strong><span>{count} {count===1?'MATCH':'MATCHES'}</span><ChevronRight size={15}/>
