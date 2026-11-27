@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, Plus, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
 import { initializeNativeNotifications } from './nativeNotifications';
-import { hideHomeBanner, prepareRewardedContentAd, showHomeBanner, showRewardedContentAd } from './nativeAds';
 import packageJson from '../package.json';
 
 type Tab = 'home' | 'matches' | 'team' | 'clips' | 'crew' | 'alerts';
@@ -58,7 +57,12 @@ const relativeTime = (timestamp?: number) => {
 
 export function App() {
   const [tab, setTab] = useState<Tab>('home');
-  const [homeBannerVisible, setHomeBannerVisible] = useState(false);
+  const navPointerStart = useRef<number | null>(null);
+  const navDragActive = useRef(false);
+  const [navPosition, setNavPosition] = useState(0);
+  const [navDragging, setNavDragging] = useState(false);
+  const navLastX = useRef<number | null>(null);
+  const [navStretch, setNavStretch] = useState(1);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -71,31 +75,26 @@ export function App() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [copied, setCopied] = useState(false);
   const [clipSubmitOpen, setClipSubmitOpen] = useState(false);
+  const [clipActionsOpen, setClipActionsOpen] = useState(false);
   const [clipBusy, setClipBusy] = useState(false);
   const [clipMessage, setClipMessage] = useState('');
   const [clipForm, setClipForm] = useState({ url: '', title: '', submittedBy: '', creatorName: '' });
   const [selectedStage, setSelectedStage] = useState<string>('overall');
   const [selectedCategory, setSelectedCategory] = useState<'official' | 'scrim'>('official');
+  const [selectedHistoryTournamentId, setSelectedHistoryTournamentId] = useState<string | null>(null);
+  const [historyStages, setHistoryStages] = useState<Stage[]>([]);
+  const [historyStage, setHistoryStage] = useState('overall');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
 
-  async function requestRewardedAccess(placement: 'clip' | 'match'): Promise<boolean> {
-    const label = placement === 'clip' ? 'watch this clip' : 'view this match data';
-    if (!window.confirm(`Watch a short ad to ${label}? You can cancel and return to the app.`)) return false;
-    const earned = await showRewardedContentAd();
-    if (!earned) window.alert('A rewarded ad is not available right now. Please try again in a moment.');
-    return earned;
-  }
 
-  // Match results must remain accessible while live AdMob inventory/review is pending.
-  // Rewarded ads remain available for clips, but never gate match-result access.
   async function handleViewMatch(match: Match) {
     setSelectedMatch(match);
   }
 
   async function handleWatchClip(url: string) {
-    if (await requestRewardedAccess('clip')) window.open(url, '_system');
+    window.open(url, '_system');
   }
 
   const activeTournament = tournaments.find(t => t.active && (t.category || 'official') === selectedCategory) ?? tournaments.find(t => (t.category || 'official') === selectedCategory) ?? tournaments[0];
@@ -125,27 +124,10 @@ export function App() {
 
   useEffect(() => {
     void load();
-    void prepareRewardedContentAd();
     void initializeNativeNotifications().then(diagnostic => {
       if (diagnostic?.error) console.warn('[FCM diagnostic] app status:', diagnostic);
     });
   }, []);
-
-  useEffect(() => {
-    // Move the navigation only after the native SDK confirms the Home banner
-    // is visible. A failed/missing ad must not leave a blank reserved area.
-    let cancelled = false;
-    if (tab === 'home') {
-      void showHomeBanner().then(visible => {
-        if (!cancelled) setHomeBannerVisible(visible);
-      });
-    } else {
-      void hideHomeBanner().then(visible => {
-        if (!cancelled) setHomeBannerVisible(visible);
-      });
-    }
-    return () => { cancelled = true; };
-  }, [tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,7 +169,14 @@ export function App() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => { setSelectedStage('all'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+  useEffect(() => { setSelectedStage('overall'); if (!activeTournament) { setStages([]); return; } api.stages(activeTournament.id).then(setStages).catch(() => setStages([])); }, [activeTournament?.id]);
+
+  const selectedHistoryTournament = tournaments.find(t => t.id === selectedHistoryTournamentId) ?? null;
+  useEffect(() => {
+    if (!selectedHistoryTournamentId) { setHistoryStages([]); setHistoryStage('overall'); return; }
+    setHistoryStage('overall');
+    api.stages(selectedHistoryTournamentId).then(setHistoryStages).catch(() => setHistoryStages([]));
+  }, [selectedHistoryTournamentId]);
   const categoryMatches = useMemo(() => matches.filter(m => (m.category || tournaments.find(t => t.id === m.tournamentId)?.category || 'official') === selectedCategory), [matches, tournaments, selectedCategory]);
 
   const tournamentMatches = useMemo(() => categoryMatches
@@ -208,33 +197,35 @@ export function App() {
   const totalKills = visibleMatches.reduce((sum,m) => sum + (m.playerStats || []).reduce((n,p) => n + (Number(p.kills)||0),0),0);
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
-  return <div className={homeBannerVisible ? "app-shell home-banner-visible" : "app-shell"}>
-    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
+  return <div className="app-shell">
+    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><div className="topbar-actions"><button className="refresh topbar-refresh" onClick={() => void load()} aria-label="Refresh data" title="Refresh data"><RefreshCw size={17}/></button><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></div></header>
     <main>
       {tab === 'home' && <>
         <section className="mobile-overview-hero">
-          <div><span>OG ELITE / LIVE PERFORMANCE CENTER</span><h1>{activeTournament?.name || 'NO ACTIVE TOURNAMENT'}</h1><p>{selectedCategory === 'scrim' ? 'Recent scrim performance, synced from the OG ELITE ledger.' : 'Official competitive performance, synced from the OG ELITE ledger.'}</p></div>
-          <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button></div>
+          <div className="overview-hero-copy"><span className="hero-eyebrow"><i/> OG ELITE / Performance</span><h1>{activeTournament?.name || 'No active tournament'}</h1></div>
+          <div className="hero-orbit-art" aria-hidden="true"><div className="orbit-ring"/><div className="orbit-core"><img src={ogEliteLogo} alt=""/></div><div className="orbit-cube cube-one"/><div className="orbit-cube cube-two"/><div className="orbit-pill"/></div>
+          <div className="mobile-overview-mode"><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>Scrims</button><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>Official</button></div>
         </section>
         {selectedCategory === 'official' && activeTournament && <StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/>}
         <section className="mobile-overview-stats">
-          <article><small>TEAM POINTS</small><strong>{totalPoints}</strong><span>{selectedStageName || 'LIVE RESULTS'}</span></article>
-          <article><small>ELIMINATIONS</small><strong>{totalKills}</strong><span>PLAYER TOTAL</span></article>
-          <article><small>MATCHES PLAYED</small><strong>{visibleMatches.length}</strong><span>{selectedStageName || 'RECORDED MATCHES'}</span></article>
-          <article className="accent"><small>ROSTER</small><strong>{players.length}</strong><span>ACTIVE PLAYERS</span></article>
+          <article><small>Team points</small><strong>{totalPoints}</strong><span>{selectedStageName || 'Live results'}</span></article>
+          <article><small>Eliminations</small><strong>{totalKills}</strong><span>Player total</span></article>
+          <article><small>Matches played</small><strong>{visibleMatches.length}</strong><span>{selectedStageName || 'Recorded matches'}</span></article>
+          <article className="accent"><small>Roster</small><strong>{players.length}</strong><span>Active players</span></article>
         </section>
+        <HomePerformanceGraphs matches={visibleMatches} players={players}/>
         <section className="mobile-overview-content">
           <div className="mobile-overview-panel mobile-overview-results">
-            <div className="mobile-overview-panel-head"><div><span>LATEST RESULTS</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>VIEW HISTORY →</button></div>
+            <div className="mobile-overview-panel-head"><div><span>Latest results</span><h2>{selectedStageName ? selectedStageName + ' performance' : selectedCategory === 'official' ? 'Official match performance' : 'Recent scrim performance'}</h2></div><button onClick={()=>setTab('matches')}>Match history</button></div>
             <div className="mobile-overview-match-list">
               {visibleMatches.length === 0 ? <EmptyState text="No match results for this stage yet."/> : visibleMatches.slice(0,8).map(match => <article className="mobile-overview-match" key={match.id} onClick={()=>void handleViewMatch(match)}>
-                <div className="overview-match-no">M{match.matchNumber}</div><div className="overview-match-info"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>{activeTournament?.name || 'TOURNAMENT'} • {match.category || selectedCategory}</span></div>
-                <div className="overview-match-stat"><small>PLACE</small><b>#{match.position}</b></div><div className="overview-match-stat"><small>KILLS</small><b>{(match.playerStats || []).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b></div><div className="overview-match-stat"><small>POINTS</small><b>{match.totalPoints}</b></div><span className="overview-match-view">VIEW</span>
+                <div className="overview-match-no">M{match.matchNumber}</div><div className="overview-match-info"><strong>{match.mapName || 'Free Fire MAX'}</strong><span>{activeTournament?.name || 'Tournament'} • {match.category || selectedCategory}</span></div>
+                <div className="overview-match-stat"><small>Place</small><b>#{match.position}</b></div><div className="overview-match-stat"><small>Kills</small><b>{(match.playerStats || []).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b></div><div className="overview-match-stat"><small>Points</small><b>{match.totalPoints}</b></div><span className="overview-match-view">View</span>
               </article>)}
             </div>
           </div>
           <div className="mobile-overview-panel">
-            <div className="mobile-overview-panel-head"><div><span>TABLE</span><h2>Squad output</h2></div><button onClick={()=>setTab('team')}>FULL ROSTER →</button></div>
+            <div className="mobile-overview-panel-head"><div><span>Roster</span><h2>Squad output</h2></div><button onClick={()=>setTab('team')}>Full roster</button></div>
             <div className="mobile-overview-bars">{players.map((player,index)=>{
               const rows=visibleMatches.flatMap(match=>(match.playerStats || []).filter(stat=>stat.playerId===player.id));
               const kills=rows.reduce((n,stat)=>n+(Number(stat.kills)||0),0);
@@ -245,31 +236,103 @@ export function App() {
         </section>
       </>}
 
-      {tab === 'matches' && <><PageHeading title="Match History" subtitle="Every recorded result, synced from the OG ELITE ledger."/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>setSelectedCategory('official')}>OFFICIAL</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>setSelectedCategory('scrim')}>SCRIMS</button></div><StagePicker stages={stages} selected={selectedStage} onSelect={setSelectedStage}/><MatchList matches={visibleMatches} onView={handleViewMatch}/></>}
+      {tab === 'matches' && <><PageHeading title="Match History" subtitle=""/><div className="stats-mode-switch matches-mode-switch"><button className={selectedCategory==='official'?'active':''} onClick={()=>{setSelectedCategory('official');setSelectedHistoryTournamentId(null);}}>Official</button><button className={selectedCategory==='scrim'?'active':''} onClick={()=>{setSelectedCategory('scrim');setSelectedHistoryTournamentId(null);}}>Scrims</button></div>{selectedHistoryTournament ? <><section className="history-selected-head"><button className="history-back" onClick={()=>setSelectedHistoryTournamentId(null)}>← All tournaments</button><div><span>Tournament history</span><h2>{selectedHistoryTournament.name}</h2><small>{selectedHistoryTournament.status.toUpperCase()} · {categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).length} Matches</small></div></section><StagePicker stages={historyStages} selected={historyStage} onSelect={setHistoryStage}/><MatchList matches={categoryMatches.filter(m=>m.tournamentId===selectedHistoryTournament.id).filter(m=>historyStage==='overall'||m.weekId===historyStage).slice().sort((a,b)=>b.timestamp-a.timestamp)} onView={handleViewMatch}/></> : <TournamentHistoryList tournaments={tournaments.filter(t=>(t.category||'official')===selectedCategory)} matches={matches.filter(m=>(m.category||tournaments.find(t=>t.id===m.tournamentId)?.category||'official')===selectedCategory)} onSelect={setSelectedHistoryTournamentId}/>}</>}
 
-      {tab === 'team' && <><section className="mobile-players-intro"><div><span className="mobile-section-kicker">OG ELITE / FREE FIRE MAX</span><h1>Meet the <em>squad.</em></h1><p>Player profiles, roles and live competitive output managed from the OG ELITE control center.</p></div><div className="mobile-roster-count"><strong>{String(players.length).padStart(2,'0')}</strong><span>ACTIVE<br/>PLAYERS</span></div></section><div className="mobile-player-grid">{players.map((player,index)=>{const stat=playerStats[player.id];const kills=stat?.kills??0;const played=stat?.played??0;const avg=played?(kills/played).toFixed(2):'0.00';return <article className="mobile-public-player" key={player.id}><div className="mobile-public-player-image" style={player.imageUrl?{backgroundImage:'url('+player.imageUrl+')'}:undefined}><div className="mobile-public-player-identity"><strong>{player.name}</strong><small>{player.role}</small></div>{!player.imageUrl&&<span>{player.name.slice(0,2)}</span>}<b>#{String(index+1).padStart(2,'0')}</b><i>ACTIVE</i></div><div className="mobile-public-player-stats"><div><strong>{kills}</strong><span>KILLS</span></div><div><strong>{played}</strong><span>MATCHES</span></div><div><strong>{avg}</strong><span>AVG</span></div></div></article>})}</div>{players.length===0&&<div className="empty">No player records available yet.</div>}</>}
+      {tab === 'team' && <><section className="mobile-players-intro"><div><span className="mobile-section-kicker">OG ELITE / Free Fire MAX</span><h1>Meet the <em>squad.</em></h1></div><div className="mobile-roster-count"><strong>{String(players.length).padStart(2,'0')}</strong><span>Active<br/>players</span></div></section><div className="mobile-player-grid">{players.map((player,index)=>{const stat=playerStats[player.id];const kills=stat?.kills??0;const played=stat?.played??0;const avg=played?(kills/played).toFixed(2):'0.00';return <article className="mobile-public-player" key={player.id}><div className="mobile-public-player-image">{!player.imageUrl&&<span className="mobile-player-fallback">{player.name.slice(0,2)}</span>}{player.imageUrl&&<img className="mobile-player-photo" src={mediaUrl(player.imageUrl)} alt={player.name} loading="lazy" onError={event=>{event.currentTarget.style.display='none';}}/>}<div className="mobile-public-player-identity"><strong>{player.name}</strong><small>{player.role}</small></div><b>#{String(index+1).padStart(2,'0')}</b><i>Active</i></div><div className="mobile-public-player-stats"><div><strong>{kills}</strong><span>Kills</span></div><div><strong>{played}</strong><span>Matches</span></div><div><strong>{avg}</strong><span>Average</span></div></div></article>})}</div>{players.length===0&&<div className="empty">No player records available yet.</div>}</>}
 
       {tab === 'clips' && <ClipsPanel clips={clips} onWatchClip={(url)=>void handleWatchClip(url)} clipSubmitOpen={clipSubmitOpen} setClipSubmitOpen={setClipSubmitOpen} clipBusy={clipBusy} setClipBusy={setClipBusy} clipMessage={clipMessage} setClipMessage={setClipMessage} clipForm={clipForm} setClipForm={setClipForm} setClips={setClips}/>}
 
-      {tab === 'crew' && <><section className="mobile-content-hero"><div><span>OG ELITE / COMMUNITY</span><h1>OUR CREW</h1><p>Meet the creators and personalities building the OG ELITE community.</p></div></section><section className="mobile-creator-grid">{creators.length?creators.map(creator=><article className="mobile-creator-card" key={creator.id}><div className="mobile-creator-image">{creator.imageUrl?<img src={mediaUrl(creator.imageUrl)} alt={creator.name} loading="eager" decoding="async" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>:<div className="mobile-creator-fallback">{creator.name.slice(0,2).toUpperCase()}</div>}<div className="mobile-creator-name"><h2>{creator.name}</h2>{creator.handle&&<span>{creator.handle}</span>}</div>{creator.featured&&<small>FEATURED</small>}</div><div className="mobile-creator-body"><p>{creator.bio||'OG ELITE community creator.'}</p><div className="mobile-creator-links">{creator.youtube&&<a className="creator-social" href={creator.youtube} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s YouTube"}><SocialIcon type="youtube"/><span>YOUTUBE</span></a>}{creator.instagram&&<a className="creator-social" href={creator.instagram} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s Instagram"}><SocialIcon type="instagram"/><span>INSTAGRAM</span></a>}{creator.discord&&<a href={creator.discord} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s Discord"}>DISCORD ↗</a>}</div></div></article>):<div className="mobile-empty-feature"><b>CREATORS WILL APPEAR HERE</b></div>}</section></>}
+      {tab === 'crew' && <><section className="mobile-content-hero"><div><h1>Our crew</h1></div></section><section className="mobile-creator-grid">{creators.length?creators.map(creator=><article className="mobile-creator-card" key={creator.id}><div className="mobile-creator-image">{creator.imageUrl?<img src={mediaUrl(creator.imageUrl)} alt={creator.name} loading="eager" decoding="async" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>:<div className="mobile-creator-fallback">{creator.name.slice(0,2).toUpperCase()}</div>}<div className="mobile-creator-name"><h2>{creator.name}</h2>{creator.handle&&<span>{creator.handle}</span>}</div>{creator.featured&&<small>Featured</small>}</div><div className="mobile-creator-body"><p>{creator.bio||'OG ELITE community creator.'}</p><div className="mobile-creator-links">{creator.youtube&&<a className="creator-social" href={creator.youtube} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s YouTube"}><SocialIcon type="youtube"/><span>YouTube</span></a>}{creator.instagram&&<a className="creator-social" href={creator.instagram} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s Instagram"}><SocialIcon type="instagram"/><span>Instagram</span></a>}{creator.discord&&<a href={creator.discord} target="_blank" rel="noreferrer" aria-label={"Open "+creator.name+"'s Discord"}>Discord ↗</a>}</div></div></article>):<div className="mobile-empty-feature"><b>Creators will appear here</b></div>}</section></>}
 
-      {tab === 'alerts' && <><PageHeading title="Notifications" subtitle="Match updates, content drops and admin announcements."/><div className="notification-list">{notifications.length===0&&<EmptyState text="No notifications yet."/>}{notifications.map(item=><article className="notification" key={item.id}><div className="notification-icon"><Bell size={17}/></div><div><strong>{item.title}</strong><p>{item.message||item.type}</p><time>{relativeTime(item.createdAt)}</time></div></article>)}</div></>}
+      {tab === 'alerts' && <><PageHeading title="Notifications" subtitle=""/><div className="notification-list">{notifications.length===0&&<EmptyState text="No notifications yet."/>}{notifications.map(item=><article className="notification" key={item.id}><div className="notification-icon"><Bell size={17}/></div><div><strong>{item.title}</strong><p>{item.message||item.type}</p><time>{relativeTime(item.createdAt)}</time></div></article>)}</div></>}
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
-    <nav className="bottom-nav"><NavButton active={tab==='home'} label="Home" icon={<Home size={20}/>} onClick={()=>setTab('home')}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={20}/>} onClick={()=>setTab('matches')}/><NavButton active={tab==='team'} label="Team" icon={<Users size={20}/>} onClick={()=>setTab('team')}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={20}/>} onClick={()=>setTab('clips')}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={20}/>} onClick={()=>setTab('crew')}/><button className="refresh" onClick={()=>void load()} aria-label="Refresh"><RefreshCw size={18}/></button></nav>
-    {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS • UPDATE</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button></div></section></div>}
+    <nav className="bottom-nav" aria-label="Main navigation">
+      <div className={`nav-tabs${navDragging?' dragging':''}${tab==='clips'?' clips-active':''}`}
+        onPointerDown={event=>{navPointerStart.current=event.clientX;navLastX.current=event.clientX;navDragActive.current=true;setNavDragging(false);setNavStretch(1);}}
+        onPointerMove={event=>{if(!navDragActive.current||navPointerStart.current===null)return;const totalDelta=event.clientX-navPointerStart.current;if(!navDragging&&Math.abs(totalDelta)<7)return;if(!navDragging){setNavDragging(true);event.currentTarget.setPointerCapture(event.pointerId);}const rect=event.currentTarget.getBoundingClientRect();const x=Math.max(0,Math.min(rect.width,event.clientX-rect.left));const next=Math.max(0,Math.min(4,Math.floor((x/rect.width)*5)));const delta=navLastX.current===null?0:event.clientX-navLastX.current;navLastX.current=event.clientX;setNavPosition(next);setNavStretch(Math.min(1.3,1+Math.abs(delta)*.014));}}
+        onPointerUp={event=>{if(!navDragActive.current)return;const wasDragged=navDragging;navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);if(wasDragged){const rect=event.currentTarget.getBoundingClientRect();const index=Math.max(0,Math.min(4,Math.floor(((event.clientX-rect.left)/rect.width)*5)));const nextTab=(["home","matches","clips","team","crew"] as Tab[])[index];setNavPosition(index);setTab(nextTab);setClipActionsOpen(false);}}}
+        onPointerCancel={()=>{navDragActive.current=false;navPointerStart.current=null;setNavDragging(false);navLastX.current=null;setNavStretch(1);setNavPosition(({"home":0,"matches":1,"clips":2,"team":3,"crew":4} as Record<string,number>)[tab]??0);}}
+        style={{"--active-shift":(navPosition*100)+"%","--nav-stretch":navStretch} as React.CSSProperties}>
+        <span className="nav-liquid-indicator" aria-hidden="true"/>
+        <NavButton active={tab==='home'} label="Home" icon={<Home size={18}/>} onClick={()=>{setNavPosition(0);setTab('home');setClipActionsOpen(false)}}/>
+        <NavButton active={tab==='matches'} label="Matches" icon={<Swords size={18}/>} onClick={()=>{setNavPosition(1);setTab('matches');setClipActionsOpen(false)}}/>
+        <div className="nav-center-slot">
+          <button type="button" className="nav-create-button" aria-label="Clips actions" aria-expanded={clipActionsOpen}
+            onPointerDown={event=>event.stopPropagation()}
+            onClick={()=>setClipActionsOpen(value=>!value)}><Plus size={25} strokeWidth={2.4}/></button>
+          <span className="nav-create-label">Clips</span>
+          {clipActionsOpen&&<div className="nav-clip-menu" role="menu" onPointerDown={event=>event.stopPropagation()}>
+            <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false)}}><Play size={15}/><span><b>Browse clips</b><small>Watch community highlights</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setTab('clips');setNavPosition(2);setClipActionsOpen(false);setClipMessage('');setClipSubmitOpen(true)}}><Plus size={15}/><span><b>Submit a clip</b><small>Add a new highlight</small></span></button>
+          </div>}
+        </div>
+        <NavButton active={tab==='team'} label="Team" icon={<Users size={18}/>} onClick={()=>{setNavPosition(3);setTab('team');setClipActionsOpen(false)}}/>
+        <NavButton active={tab==='crew'} label="Crew" icon={<Users size={18}/>} onClick={()=>{setNavPosition(4);setTab('crew');setClipActionsOpen(false)}}/>
+      </div>
+    </nav>
+    {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS / Update</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>Later</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>Update now ↗</button></div></section></div>}
     <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
   </div>;
+}
+
+
+function HomePerformanceGraphs({matches,players}:{matches:Match[];players:Player[]}) {
+  const [selectedPlayerId,setSelectedPlayerId]=useState(players[0]?.id||'');
+  useEffect(()=>{if(!players.some(player=>player.id===selectedPlayerId))setSelectedPlayerId(players[0]?.id||'');},[players,selectedPlayerId]);
+  const ordered=matches.slice().sort((a,b)=>a.timestamp-b.timestamp).slice(-12);
+  const teamValues=ordered.map(match=>(match.playerStats||[]).reduce((sum,row)=>sum+(Number(row.kills)||0),0));
+  const selectedPlayer=players.find(player=>player.id===selectedPlayerId);
+  const playerValues=ordered.map(match=>(match.playerStats||[]).filter(row=>row.playerId===selectedPlayerId).reduce((sum,row)=>sum+(Number(row.kills)||0),0));
+  const total=teamValues.reduce((sum,value)=>sum+value,0);
+  return <section className="home-performance">
+    <div className="home-performance-heading"><div><h2>Performance</h2></div><i>{ordered.length} Matches</i></div>
+    <article className="home-graph-card">
+      <div className="home-graph-title"><div><span>Team performance</span><h3>Squad eliminations</h3></div><strong>{total}<small> Total kills</small></strong></div>
+      <PerformanceLineChart matches={ordered} values={teamValues} chartId="team"/>
+    </article>
+    <article className="home-graph-card">
+      <div className="home-graph-title player-graph-title"><div><span>Individual performance</span><h3>{selectedPlayer?.name||'Player kills'}</h3></div><label className="home-player-select"><span>Player</span><select value={selectedPlayerId} onChange={event=>setSelectedPlayerId(event.target.value)} disabled={!players.length}><option value="">Select player</option>{players.map(player=><option key={player.id} value={player.id}>{player.name}</option>)}</select></label></div>
+      <PerformanceLineChart matches={ordered} values={playerValues} chartId="player"/>
+    </article>
+    {!ordered.length&&<EmptyState text="Match-by-match graphs will appear as results are added."/>}
+  </section>;
+}
+
+function PerformanceLineChart({matches,values,chartId}:{matches:Match[];values:number[];chartId:string}) {
+  const max=Math.max(1,...values);
+  const points=values.map((value,index)=>({x:22+index*(316/Math.max(1,values.length-1)),y:122-(value/max)*88}));
+  const path=points.map((point,index)=>(index?'L':'M')+' '+point.x.toFixed(1)+' '+point.y.toFixed(1)).join(' ');
+  const area=points.length?path+' L '+points[points.length-1].x+' 122 L '+points[0].x+' 122 Z':'';
+  const gradientId='homeGraphArea-'+chartId;
+  return <>{values.length?<><div className="home-graph-plot"><div className="home-graph-axis"><span>{max}</span><span>{Math.round(max/2)}</span><span>0</span></div><svg viewBox="0 0 360 140" role="img" aria-label={chartId==='team'?'Team kills per match':'Selected player kills per match'} preserveAspectRatio="none"><defs><linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#FF5A1F" stopOpacity=".3"/><stop offset="100%" stopColor="#FF5A1F" stopOpacity="0"/></linearGradient></defs><path d="M22 122 H338" stroke="rgba(255,255,255,.13)" strokeDasharray="3 5"/><path d={area} fill={'url(#'+gradientId+')'}/><path d={path} fill="none" stroke="#FF5A1F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>{points.map((point,index)=><circle key={matches[index].id} cx={point.x} cy={point.y} r="4" fill="#2B3036" stroke="#DDE5E9" strokeWidth="2.4"/>)}</svg></div><div className="home-graph-labels">{matches.map(match=><span key={match.id}>M{match.matchNumber}</span>)}</div></>:<EmptyState text="No match results available for this graph yet."/>}</>;
 }
 
 function ClipMedia({clip}:{clip:Clip}){const imageUrl=clipImageUrl(clip);if(!imageUrl)return <div><span>{clip.platform}</span><b>▶</b></div>;return <><img src={imageUrl} alt="" loading="lazy" decoding="async" onError={e=>{e.currentTarget.style.display='none';const fallback=e.currentTarget.nextElementSibling as HTMLElement|null;if(fallback)fallback.style.display='flex'}}/><div style={{display:'none'}}><span>{clip.platform}</span><b>▶</b></div></>}
 
 function SocialIcon({type}:{type:'youtube'|'instagram'}){if(type==='youtube')return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="6" width="18" height="12" rx="4" fill="currentColor"/><path d="m10 9 5 3-5 3V9Z" fill="#0a0d0b" stroke="none"/></svg>;return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none"/><circle cx="12" cy="12" r="4" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" stroke="none"/></svg>}
 function NavButton({active,label,icon,onClick}:{active:boolean;label:string;icon:React.ReactNode;onClick:()=>void}){return <button className={active?'nav-item active':'nav-item'} onClick={onClick}>{icon}<span>{label}</span></button>}
-function PageHeading({title,subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><span>OG ELITE</span><h1>{title}</h1><p>{subtitle}</p></section>}
-function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>WEEK / PHASE</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>OVERALL</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
-function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'OFFICIAL'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
+function PageHeading({title,subtitle:_subtitle}:{title:string;subtitle:string}){return <section className="page-heading"><h1>{title}</h1></section>}
+function StagePicker({stages,selected,onSelect}:{stages:Stage[];selected:string;onSelect:(value:string)=>void}){if(!stages.length)return null;return <section className="mobile-overview-stages"><span>Week / phase</span><div className="stage-scroll"><button className={selected==='overall'?'stage active':'stage'} onClick={()=>onSelect('overall')}>Overall</button>{stages.map(stage=><button key={stage.id} className={selected===stage.id?'stage active':'stage'} onClick={()=>onSelect(stage.id)}>{stage.name}</button>)}</div></section>}
+function TournamentHistoryList({tournaments,matches,onSelect}:{tournaments:Tournament[];matches:Match[];onSelect:(id:string)=>void}) {
+  if (!tournaments.length) return <section className="history-tournament-list"><EmptyState text="No tournaments in this category yet."/></section>;
+  return <section className="history-tournament-list">
+    <div className="history-list-kicker"><span>Tournament archive</span><small>{tournaments.length} TOURNAMENTS</small></div>
+    {tournaments.slice().sort((a,b)=>Number(b.active)-Number(a.active)).map(tournament=>{
+      const rows=matches.filter(match=>match.tournamentId===tournament.id);
+      const points=rows.reduce((sum,match)=>sum+(Number(match.totalPoints)||0),0);
+      const latest=rows.reduce((value,match)=>Math.max(value,Number(match.timestamp)||0),0);
+      return <button type="button" className="history-tournament-card" key={tournament.id} onClick={()=>onSelect(tournament.id)}>
+        <span className="history-tournament-mark"><Trophy size={19}/></span>
+        <span className="history-tournament-copy"><strong>{tournament.name}</strong><small>{tournament.active?'CURRENT TOURNAMENT':tournament.status.toUpperCase()} {latest?' · '+relativeTime(latest):''}</small></span>
+        <span className="history-tournament-meta"><b>{rows.length}</b><small>Matches</small><em>{points} PTS</em></span>
+        <ChevronRight className="history-tournament-arrow" size={18}/>
+      </button>;
+    })}
+  </section>;
+}
+function MatchList({matches,onView}:{matches:Match[];onView:(match:Match)=>void}){return <section className="section"><div className="section-title"><span>Recent results</span><Swords size={18}/></div><div className="match-list">{matches.length===0&&<EmptyState text="No match results for this stage yet."/>}{matches.map(match=><article className="match-card" key={match.id}><div className="match-number">M{match.matchNumber}</div><div className="match-info"><strong>{match.mapName||'Battle Royale'}</strong><span>{match.category==='scrim'?'SCRIM':'Official'} · {relativeTime(match.timestamp)}</span></div><div className="match-result"><strong>#{match.position}</strong><span>{match.totalPoints} pts</span></div><button className="match-view" onClick={()=>onView(match)}><ExternalLink size={12}/> View</button></article>)}</div></section>}
 function placementPoints(position:number){const rankPoints:Record<number,number>={1:12,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};return rankPoints[position]||0}
 function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],allMatches:Match[],selectedStage:string){
   const tournament=tournaments.find(t=>t.id===match.tournamentId);
@@ -282,9 +345,9 @@ function matchCopyText(match:Match,players:Player[],tournaments:Tournament[],all
   const playerLines=(match.playerStats||[]).map(s=>{const player=players.find(p=>p.id===s.playerId);return(player?.name||'Unknown player')+': '+s.kills}).join('\n');
   return[tournament?.name||(category==='scrim'?'9 pm scrims':'OG ELITE'),'','Match '+match.matchNumber,(match.mapName||'Free Fire MAX').toUpperCase(),' ',playerLines||'No player stats recorded.','','Rank: #'+match.position+' ('+placementPoints(match.position)+' PTS)','Total: '+match.totalPoints+' PTS','Overall: '+overallPoints+' PTS'].join('\n')
 }
-function MatchDetails({match,players,onClose,copied,onCopy}:{match:Match;players:Player[];onClose:()=>void;copied:boolean;onCopy:()=>void}){return <div className="modal-backdrop" onClick={onClose}><section className="match-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={18}/></button><span className="modal-kicker">OG ELITE • MATCH M{match.matchNumber}</span><h2>{match.mapName||'Battle Royale'}</h2><div className="detail-grid"><div><b>#{match.position}</b><small>POSITION</small></div><div><b>{match.totalPoints}</b><small>POINTS</small></div><div><b>{(match.playerStats||[]).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b><small>KILLS</small></div><div><b>{match.category==='scrim'?'SCRIM':'OFFICIAL'}</b><small>TYPE</small></div></div><div className="modal-player-list">{(match.playerStats||[]).map(p=>{const player=players.find(x=>x.id===p.playerId);return <div key={p.playerId}><span>{player?.name||'Unknown player'}</span><b>{p.kills} kills</b></div>})}</div><button className="copy-match" onClick={onCopy}><Copy size={15}/> {copied?'Copied!':'Copy match data'}</button></section></div>}
+function MatchDetails({match,players,onClose,copied,onCopy}:{match:Match;players:Player[];onClose:()=>void;copied:boolean;onCopy:()=>void}){return <div className="modal-backdrop" onClick={onClose}><section className="match-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={18}/></button><span className="modal-kicker">OG ELITE • MATCH M{match.matchNumber}</span><h2>{match.mapName||'Battle Royale'}</h2><div className="detail-grid"><div><b>#{match.position}</b><small>Position</small></div><div><b>{match.totalPoints}</b><small>Points</small></div><div><b>{(match.playerStats||[]).reduce((n,p)=>n+(Number(p.kills)||0),0)}</b><small>Kills</small></div><div><b>{match.category==='scrim'?'SCRIM':'Official'}</b><small>Type</small></div></div><div className="modal-player-list">{(match.playerStats||[]).map(p=>{const player=players.find(x=>x.id===p.playerId);return <div key={p.playerId}><span>{player?.name||'Unknown player'}</span><b>{p.kills} kills</b></div>})}</div><button className="copy-match" onClick={onCopy}><Copy size={15}/> {copied?'Copied!':'Copy match data'}</button></section></div>}
 function ClipSection({clips}:{clips:Clip[]}){if(!clips.length)return null;return <section className="section"><div className="section-title"><span>Clips</span><Play size={18}/></div><div className="clip-grid">{clips.map(clip=><a className="clip-card" key={clip.id} href={clip.url} target="_blank" rel="noreferrer"><div className="clip-icon"><Play size={17}/></div><div><strong>{clip.title}</strong><span>{clip.platform}{clip.creatorName?' • '+clip.creatorName:''}</span></div><ExternalLink size={14}/></a>)}</div></section>}
 function CrewSection({creators}:{creators:Creator[]}){if(!creators.length)return null;return <section className="section"><div className="section-title"><span>Crew</span><Users size={18}/></div><div className="crew-grid">{creators.map(creator=><article className="crew-card" key={creator.id}>{creator.imageUrl?<img src={creator.imageUrl} alt=""/>:<div className="crew-avatar">{creator.name.slice(0,1)}</div>}<div><strong>{creator.name}</strong><span>{creator.handle||'OG ELITE CREW'}</span>{creator.bio&&<p>{creator.bio}</p>}</div></article>)}</div></section>}
 function EmptyState({text}:{text:string}){return <div className="empty">{text}</div>}
 
-function ClipsPanel({clips,onWatchClip,clipSubmitOpen,setClipSubmitOpen,clipBusy,setClipBusy,clipMessage,setClipMessage,clipForm,setClipForm,setClips}:{clips:Clip[];onWatchClip:(url:string)=>void;clipSubmitOpen:boolean;setClipSubmitOpen:(v:boolean)=>void;clipBusy:boolean;setClipBusy:(v:boolean)=>void;clipMessage:string;setClipMessage:(v:string)=>void;clipForm:{url:string;title:string;submittedBy:string;creatorName:string};setClipForm:(v:{url:string;title:string;submittedBy:string;creatorName:string})=>void;setClips:(v:Clip[])=>void}){return <><section className="mobile-content-hero"><div><span>OG ELITE / COMMUNITY</span><h1>CLIPS</h1><p>Best plays, clutch moments and highlights from the OG ELITE community.</p></div><button className="clip-submit-button" onClick={()=>{setClipSubmitOpen(true);setClipMessage('')}}>+ SUBMIT A CLIP</button></section><section className="mobile-clips-grid">{clips.length===0?<div className="mobile-empty-feature"><b>NO CLIPS YET</b><span>Be the first fan to submit a highlight.</span><button onClick={()=>setClipSubmitOpen(true)}>SUBMIT YOUR CLIP</button></div>:clips.map(clip=><article className={'mobile-full-clip '+(clip.featured?'featured':'')} key={clip.id}><a className="mobile-clip-media" href={clip.url} onClick={e=>{e.preventDefault();onWatchClip(clip.url)}} aria-label={"Watch " + clip.title}><ClipMedia clip={clip}/><i>▶</i></a><div className="mobile-clip-info">{clip.featured&&<small>FEATURED</small>}<h2>{clip.title}</h2><p>{clip.creatorName||clip.submittedBy}</p><a href={clip.url} onClick={e=>{e.preventDefault();onWatchClip(clip.url)}}>WATCH CLIP ↗</a></div></article>)}</section>{clipSubmitOpen&&<div className="clip-submit-modal" onClick={()=>setClipSubmitOpen(false)}><form onSubmit={async e=>{e.preventDefault();setClipBusy(true);setClipMessage('');try{const r=await fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/clips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(clipForm)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not submit clip.');setClipMessage('Submitted! Your clip is now waiting for OG ELITE moderation.');setClipForm({url:'',title:'',submittedBy:'',creatorName:''});setClips(await api.clips());}catch(e){setClipMessage(e instanceof Error?e.message:'Could not submit clip.')}finally{setClipBusy(false)}}} onClick={e=>e.stopPropagation()}><button type="button" className="clip-modal-close" onClick={()=>setClipSubmitOpen(false)}>×</button><div className="clip-submit-head"><div className="clip-submit-icon"><Play size={18}/></div><div><span>OG ELITE / COMMUNITY</span><h2>Submit a clip</h2></div></div><p className="clip-submit-subtitle">Share your best moment with the OG ELITE community. Every submission is reviewed before it goes live.</p><label><span>CLIP URL</span><input required type="url" value={clipForm.url} onChange={e=>setClipForm({...clipForm,url:e.target.value})} placeholder="https://youtube.com/..."/></label><label><span>CLIP TITLE</span><input value={clipForm.title} onChange={e=>setClipForm({...clipForm,title:e.target.value})} placeholder="INSANE FINAL CIRCLE CLUTCH"/></label><label><span>YOUR NAME / USERNAME</span><input value={clipForm.submittedBy} onChange={e=>setClipForm({...clipForm,submittedBy:e.target.value})} placeholder="Your name"/></label><label><span>PLAYER / CREATOR <em>OPTIONAL</em></span><input value={clipForm.creatorName} onChange={e=>setClipForm({...clipForm,creatorName:e.target.value})} placeholder="Player name"/></label>{clipMessage&&<div className="clip-message">{clipMessage}</div>}<button className="clip-submit-button" disabled={clipBusy}>{clipBusy?'SUBMITTING...':'SUBMIT FOR REVIEW'}</button></form></div>}</>}
+function ClipsPanel({clips,onWatchClip,clipSubmitOpen,setClipSubmitOpen,clipBusy,setClipBusy,clipMessage,setClipMessage,clipForm,setClipForm,setClips}:{clips:Clip[];onWatchClip:(url:string)=>void;clipSubmitOpen:boolean;setClipSubmitOpen:(v:boolean)=>void;clipBusy:boolean;setClipBusy:(v:boolean)=>void;clipMessage:string;setClipMessage:(v:string)=>void;clipForm:{url:string;title:string;submittedBy:string;creatorName:string};setClipForm:(v:{url:string;title:string;submittedBy:string;creatorName:string})=>void;setClips:(v:Clip[])=>void}){return <><section className="mobile-content-hero"><div><span>OG ELITE / Community</span><h1>CLIPS</h1></div><button className="clip-submit-button" onClick={()=>{setClipSubmitOpen(true);setClipMessage('')}}>+ Submit a clip</button></section><section className="mobile-clips-grid">{clips.length===0?<div className="mobile-empty-feature"><b>No clips yet</b><span>Be the first fan to submit a highlight.</span><button onClick={()=>setClipSubmitOpen(true)}>Submit your clip</button></div>:clips.map(clip=><article className={'mobile-full-clip '+(clip.featured?'featured':'')} key={clip.id}><a className="mobile-clip-media" href={clip.url} onClick={e=>{e.preventDefault();onWatchClip(clip.url)}} aria-label={"Watch " + clip.title}><ClipMedia clip={clip}/><i>▶</i></a><div className="mobile-clip-info">{clip.featured&&<small>Featured</small>}<h2>{clip.title}</h2><p>{clip.creatorName||clip.submittedBy}</p><a href={clip.url} onClick={e=>{e.preventDefault();onWatchClip(clip.url)}}>Watch clip ↗</a></div></article>)}</section>{clipSubmitOpen&&<div className="clip-submit-modal" onClick={()=>setClipSubmitOpen(false)}><form role="dialog" aria-modal="true" aria-labelledby="clip-submit-title" onSubmit={async e=>{e.preventDefault();setClipBusy(true);setClipMessage('');try{const r=await fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/clips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(clipForm)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not submit clip.');setClipMessage('Submitted! Your clip is now waiting for OG ELITE moderation.');setClipForm({url:'',title:'',submittedBy:'',creatorName:''});setClips(await api.clips());}catch(e){setClipMessage(e instanceof Error?e.message:'Could not submit clip.')}finally{setClipBusy(false)}}} onClick={e=>e.stopPropagation()}><button type="button" className="clip-modal-close" aria-label="Close clip submission" onClick={()=>setClipSubmitOpen(false)}>×</button><div className="clip-submit-head"><div className="clip-submit-icon"><Play size={18}/></div><div><span>OG ELITE / Community</span><h2 id="clip-submit-title">Submit a clip</h2></div></div><p className="clip-submit-subtitle">Share your best moment with the OG ELITE community. Every submission is reviewed before it goes live.</p><label><span>Clip URL</span><input required type="url" value={clipForm.url} onChange={e=>setClipForm({...clipForm,url:e.target.value})} placeholder="https://youtube.com/..."/></label><label><span>Clip title</span><input value={clipForm.title} onChange={e=>setClipForm({...clipForm,title:e.target.value})} placeholder="INSANE FINAL CIRCLE CLUTCH"/></label><label><span>Your name / username</span><input value={clipForm.submittedBy} onChange={e=>setClipForm({...clipForm,submittedBy:e.target.value})} placeholder="Your name"/></label><label><span>Player / creator <em>Optional</em></span><input value={clipForm.creatorName} onChange={e=>setClipForm({...clipForm,creatorName:e.target.value})} placeholder="Player name"/></label>{clipMessage&&<div className="clip-message">{clipMessage}</div>}<button className="clip-submit-button" disabled={clipBusy}>{clipBusy?'Submitting…':'Submit for review'}</button></form></div>}</>}
