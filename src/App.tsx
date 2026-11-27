@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
+import { Bell, ChevronRight, Copy, ExternalLink, Flame, Home, Image as ImageIcon, Play, RefreshCw, Shield, Swords, Trophy, Users, X } from 'lucide-react';
 import { api } from './api';
 import type { Clip, Creator, Match, Notification, Player, PlayerStat, Settings, Stage, Tournament } from './types';
 import ogEliteLogo from '../assets/og-elite-icon.png';
@@ -45,6 +45,13 @@ const clipImageUrl = (clip: Clip) => {
   return '';
 };
 
+const backgroundOptions = [
+  { id: 'default', name: 'Original', src: '' },
+  { id: 'one', name: 'Background 1', src: new URL('../assets/background/9df826020ed4c832e0db0a28bf9e0a8d.jpg', import.meta.url).href },
+  { id: 'two', name: 'Background 2', src: new URL('../assets/background/d4ed50b73caed239ffec2db3fd06178d.jpg', import.meta.url).href },
+  { id: 'three', name: 'Background 3', src: new URL('../assets/background/f54846636d8d1268f37cd3fedacc58a2.jpg', import.meta.url).href }
+];
+
 const relativeTime = (timestamp?: number) => {
   if (!timestamp) return '—';
   const diff = Math.max(0, Date.now() - timestamp);
@@ -79,6 +86,8 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
+  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
+  const [selectedBackground, setSelectedBackground] = useState(() => localStorage.getItem('og-test-background') || 'default');
 
   async function requestRewardedAccess(placement: 'clip' | 'match'): Promise<boolean> {
     const label = placement === 'clip' ? 'watch this clip' : 'view this match data';
@@ -122,6 +131,16 @@ export function App() {
     } catch (e) { setError('Connect the app to your production API using VITE_API_URL.'); }
     finally { setLoading(false); }
   }
+
+  useEffect(() => {
+    const selected = backgroundOptions.find(option => option.id === selectedBackground) || backgroundOptions[0];
+    document.body.dataset.appBackground = selected.id;
+    document.body.style.backgroundImage = selected.src ? 'linear-gradient(180deg, rgba(5,7,6,.66), rgba(5,7,6,.82)), url(' + selected.src + ')' : '';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+    localStorage.setItem('og-test-background', selected.id);
+  }, [selectedBackground]);
 
   useEffect(() => {
     void load();
@@ -209,7 +228,7 @@ export function App() {
   const totalPoints = visibleMatches.reduce((sum,m) => sum + (Number(m.totalPoints)||0),0);
 
   return <div className={homeBannerVisible ? "app-shell home-banner-visible" : "app-shell"}>
-    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></header>
+    <header className="topbar"><div className="brand"><div className="brand-mark"><img src={ogEliteLogo} alt="OG ELITE" /></div><div><strong>{settings?.teamName || 'OG ELITE'}</strong><span>{settings?.game || 'Free Fire MAX'}</span></div></div><div className="topbar-actions"><button className="icon-button background-picker-trigger" onClick={() => setBackgroundPickerOpen(true)} aria-label="Choose background"><ImageIcon size={19}/></button><button className="icon-button" onClick={() => setTab('alerts')} aria-label="Notifications"><Bell size={20}/>{notifications.length > 0 && <i/>}</button></div></header>
     <main>
       {tab === 'home' && <>
         <section className="mobile-overview-hero">
@@ -257,6 +276,18 @@ export function App() {
       {error&&<div className="error-banner">{error}</div>}{loading&&<div className="loading">Syncing live data…</div>}
     </main>
     <nav className="bottom-nav"><NavButton active={tab==='home'} label="Home" icon={<Home size={20}/>} onClick={()=>setTab('home')}/><NavButton active={tab==='matches'} label="Matches" icon={<Swords size={20}/>} onClick={()=>setTab('matches')}/><NavButton active={tab==='team'} label="Team" icon={<Users size={20}/>} onClick={()=>setTab('team')}/><NavButton active={tab==='clips'} label="Clips" icon={<Play size={20}/>} onClick={()=>setTab('clips')}/><NavButton active={tab==='crew'} label="Crew" icon={<Users size={20}/>} onClick={()=>setTab('crew')}/><button className="refresh" onClick={()=>void load()} aria-label="Refresh"><RefreshCw size={18}/></button></nav>
+    {backgroundPickerOpen && <div className="background-picker-backdrop" onClick={() => setBackgroundPickerOpen(false)}>
+      <section className="background-picker" role="dialog" aria-modal="true" aria-labelledby="background-picker-title" onClick={event => event.stopPropagation()}>
+        <div className="background-picker-head"><div><span>TEST BUILD ONLY</span><h2 id="background-picker-title">Choose a background</h2></div><button onClick={() => setBackgroundPickerOpen(false)} aria-label="Close background picker"><X size={19}/></button></div>
+        <div className="background-picker-options">
+          {backgroundOptions.map(option => <button key={option.id} className={selectedBackground === option.id ? "background-choice active" : "background-choice"} onClick={() => setSelectedBackground(option.id)}>
+            <span className="background-choice-preview" style={option.src ? { backgroundImage: 'url(' + option.src + ')' } : undefined}>{!option.src && <ImageIcon size={22}/>}</span>
+            <span>{option.name}</span>{selectedBackground === option.id && <b>✓</b>}
+          </button>)}
+        </div>
+        <p>Changes apply instantly and stay selected on this test install.</p>
+      </section>
+    </div>}
     {appUpdate && <div className="app-update-backdrop"><section className="app-update-card" role="dialog" aria-modal="true" aria-labelledby="app-update-title"><div className="app-update-icon"><RefreshCw size={20}/></div><span>OG ELITE STATS • UPDATE</span><h2 id="app-update-title">New update available</h2><p>Version {appUpdate.version} is ready. Update the app to get the latest fixes and features.</p>{appUpdate.notes && <div className="app-update-notes">{appUpdate.notes.slice(0, 280)}</div>}<div className="app-update-actions"><button className="app-update-later" onClick={() => setAppUpdate(null)}>LATER</button><button className="app-update-now" onClick={() => window.open(appUpdate.url, '_system')}>UPDATE NOW ↗</button></div></section></div>}
     <footer>Powered by Lumina HQ</footer>
     {selectedMatch&&<MatchDetails match={selectedMatch} players={players} onClose={()=>{setSelectedMatch(null);setCopied(false)}} copied={copied} onCopy={async()=>{await navigator.clipboard?.writeText(matchCopyText(selectedMatch,players,tournaments,matches,selectedStage));setCopied(true);setTimeout(()=>setCopied(false),1600)}}/>}
